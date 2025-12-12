@@ -1,0 +1,64 @@
+package com.carzavenue.backend.car;
+
+import com.carzavenue.backend.user.User;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Entity
+@Table(name = "car_listing")
+public class CarListing {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false)
+    private String make;
+
+    @Column(nullable = false)
+    private String model;
+
+    private Integer year;
+    private Integer mileage;
+    private String fuelType;
+    private String transmission;
+    private String bodyType;
+    private Double engineVolume;
+    private String color;
+    private Double price;
+    @Column(length = 4000)
+    private String description;
+    private String location;
+
+    @ElementCollection
+    @CollectionTable(name = "car_photos", joinColumns = @JoinColumn(name = "car_id"))
+    @Column(name = "url")
+    private List<String> photos = new ArrayList<>();
+
+    private boolean isActive = true;
+    private boolean isVip = false;
+    private Instant vipExpiresAt;
+
+    @CreationTimestamp
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    private Instant updatedAt;
+}
