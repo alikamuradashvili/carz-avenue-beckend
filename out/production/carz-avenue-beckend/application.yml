@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me}
+    refresh-secret: ${REFRESH_SECRET:change-refresh}
+    access-expiration-minutes: 15
+    refresh-expiration-days: 30
+  upload:
+    storage-path: ${IMAGE_STORAGE_PATH:uploads}
+    base-url: ${IMAGE_BASE_URL:http://localhost:8080/uploads}
+  vip:
+    default-days: 7
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
