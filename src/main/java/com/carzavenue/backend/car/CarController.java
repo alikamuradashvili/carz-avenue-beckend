@@ -24,25 +24,91 @@ public class CarController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<CarResponse>>> list(
-            @RequestParam Optional<String> make,
-            @RequestParam Optional<String> model,
-            @RequestParam Optional<Integer> yearMin,
-            @RequestParam Optional<Integer> yearMax,
-            @RequestParam Optional<Double> priceMin,
-            @RequestParam Optional<Double> priceMax,
-            @RequestParam Optional<String> fuelType,
-            @RequestParam Optional<String> transmission,
-            @RequestParam Optional<String> bodyType,
-            @RequestParam Optional<Integer> mileageMin,
-            @RequestParam Optional<Integer> mileageMax,
-            @RequestParam Optional<String> location,
-            @RequestParam Optional<Boolean> isVip,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "newest") String sort
+            @RequestParam(value = "make", required = false) String make,
+            @RequestParam(value = "model", required = false) String model,
+            @RequestParam(value = "yearMin", required = false) Integer yearMin,
+            @RequestParam(value = "yearMax", required = false) Integer yearMax,
+            @RequestParam(value = "priceMin", required = false) Double priceMin,
+            @RequestParam(value = "priceMax", required = false) Double priceMax,
+            @RequestParam(value = "fuelType", required = false) String fuelType,
+            @RequestParam(value = "transmission", required = false) String transmission,
+            @RequestParam(value = "bodyType", required = false) String bodyType,
+            @RequestParam(value = "mileageMin", required = false) Integer mileageMin,
+            @RequestParam(value = "mileageMax", required = false) Integer mileageMax,
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "isVip", required = false) Boolean isVip,
+            @RequestParam(value = "all", required = false, defaultValue = "false") boolean all,
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "10") int size,
+            @RequestParam(value = "sort", required = false, defaultValue = "newest") String sort
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(carService.list(make, model, yearMin, yearMax, priceMin, priceMax, fuelType,
-                transmission, bodyType, mileageMin, mileageMax, location, isVip, page, size, sort)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                carService.list(
+                        make,
+                        model,
+                        yearMin,
+                        yearMax,
+                        priceMin,
+                        priceMax,
+                        fuelType,
+                        transmission,
+                        bodyType,
+                        mileageMin,
+                        mileageMax,
+                        location,
+                        isVip,
+                        all,
+                        page,
+                        size,
+                        sort
+                )
+        ));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<java.util.List<CarResponse>>> listAll() {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listAll()));
+    }
+
+    @GetMapping(params = "all=true")
+    public ResponseEntity<ApiResponse<java.util.List<CarResponse>>> listAllWithQuery(
+            @RequestParam(value = "make", required = false) String make,
+            @RequestParam(value = "model", required = false) String model,
+            @RequestParam(value = "yearMin", required = false) Integer yearMin,
+            @RequestParam(value = "yearMax", required = false) Integer yearMax,
+            @RequestParam(value = "priceMin", required = false) Double priceMin,
+            @RequestParam(value = "priceMax", required = false) Double priceMax,
+            @RequestParam(value = "fuelType", required = false) String fuelType,
+            @RequestParam(value = "transmission", required = false) String transmission,
+            @RequestParam(value = "bodyType", required = false) String bodyType,
+            @RequestParam(value = "mileageMin", required = false) Integer mileageMin,
+            @RequestParam(value = "mileageMax", required = false) Integer mileageMax,
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "isVip", required = false) Boolean isVip,
+            @RequestParam(value = "sort", required = false, defaultValue = "newest") String sort
+    ) {
+        // Reuse the main list service with all=true and return just the content list
+        return ResponseEntity.ok(ApiResponse.ok(
+                carService.list(
+                        make,
+                        model,
+                        yearMin,
+                        yearMax,
+                        priceMin,
+                        priceMax,
+                        fuelType,
+                        transmission,
+                        bodyType,
+                        mileageMin,
+                        mileageMax,
+                        location,
+                        isVip,
+                        true,
+                        0,
+                        Integer.MAX_VALUE,
+                        sort
+                ).getContent()
+        ));
     }
 
     @GetMapping("/{id}")

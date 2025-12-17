@@ -30,36 +30,38 @@ public class CarService {
         this.vipDefaultDays = vipDefaultDays;
     }
 
-    public Page<CarResponse> list(Optional<String> make,
-                                  Optional<String> model,
-                                  Optional<Integer> yearMin,
-                                  Optional<Integer> yearMax,
-                                  Optional<Double> priceMin,
-                                  Optional<Double> priceMax,
-                                  Optional<String> fuelType,
-                                  Optional<String> transmission,
-                                  Optional<String> bodyType,
-                                  Optional<Integer> mileageMin,
-                                  Optional<Integer> mileageMax,
-                                  Optional<String> location,
-                                  Optional<Boolean> isVip,
+    @Transactional(readOnly = true)
+    public Page<CarResponse> list(String make,
+                                  String model,
+                                  Integer yearMin,
+                                  Integer yearMax,
+                                  Double priceMin,
+                                  Double priceMax,
+                                  String fuelType,
+                                  String transmission,
+                                  String bodyType,
+                                  Integer mileageMin,
+                                  Integer mileageMax,
+                                  String location,
+                                  Boolean isVip,
+                                  boolean all,
                                   int page,
                                   int size,
                                   String sort) {
         Specification<CarListing> spec = Specification.where(CarSpecifications.active())
-                .and(make.map(CarSpecifications::make).orElse(null))
-                .and(model.map(CarSpecifications::model).orElse(null))
-                .and(yearMin.map(CarSpecifications::yearMin).orElse(null))
-                .and(yearMax.map(CarSpecifications::yearMax).orElse(null))
-                .and(priceMin.map(CarSpecifications::priceMin).orElse(null))
-                .and(priceMax.map(CarSpecifications::priceMax).orElse(null))
-                .and(fuelType.map(CarSpecifications::fuelType).orElse(null))
-                .and(transmission.map(CarSpecifications::transmission).orElse(null))
-                .and(bodyType.map(CarSpecifications::bodyType).orElse(null))
-                .and(mileageMin.map(CarSpecifications::mileageMin).orElse(null))
-                .and(mileageMax.map(CarSpecifications::mileageMax).orElse(null))
-                .and(location.map(CarSpecifications::location).orElse(null))
-                .and(isVip.map(CarSpecifications::vip).orElse(null))
+                .and(Optional.ofNullable(make).map(CarSpecifications::make).orElse(null))
+                .and(Optional.ofNullable(model).map(CarSpecifications::model).orElse(null))
+                .and(Optional.ofNullable(yearMin).map(CarSpecifications::yearMin).orElse(null))
+                .and(Optional.ofNullable(yearMax).map(CarSpecifications::yearMax).orElse(null))
+                .and(Optional.ofNullable(priceMin).map(CarSpecifications::priceMin).orElse(null))
+                .and(Optional.ofNullable(priceMax).map(CarSpecifications::priceMax).orElse(null))
+                .and(Optional.ofNullable(fuelType).map(CarSpecifications::fuelType).orElse(null))
+                .and(Optional.ofNullable(transmission).map(CarSpecifications::transmission).orElse(null))
+                .and(Optional.ofNullable(bodyType).map(CarSpecifications::bodyType).orElse(null))
+                .and(Optional.ofNullable(mileageMin).map(CarSpecifications::mileageMin).orElse(null))
+                .and(Optional.ofNullable(mileageMax).map(CarSpecifications::mileageMax).orElse(null))
+                .and(Optional.ofNullable(location).map(CarSpecifications::location).orElse(null))
+                .and(Optional.ofNullable(isVip).map(CarSpecifications::vip).orElse(null))
                 .and(CarSpecifications.vipNotExpired());
 
         Sort sortConfig;
@@ -70,10 +72,33 @@ public class CarService {
         } else {
             sortConfig = Sort.by("createdAt").descending();
         }
-        return carRepository.findAll(spec, PageRequest.of(page, size, sortConfig))
-                .map(CarMapper::toResponse);
+
+        if (all) {
+            List<CarResponse> cars = carRepository.findAll(spec, sortConfig)
+                    .stream()
+                    .map(CarMapper::toResponse)
+                    .toList();
+            return new org.springframework.data.domain.PageImpl<>(
+                    cars,
+                    PageRequest.of(0, cars.size() == 0 ? 1 : cars.size(), sortConfig),
+                    cars.size()
+            );
+        }
+
+        return carRepository.findAll(spec, PageRequest.of(page, size, sortConfig)).map(CarMapper::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public List<CarResponse> listAll() {
+        Specification<CarListing> spec = Specification.where(CarSpecifications.active())
+                .and(CarSpecifications.vipNotExpired());
+        return carRepository.findAll(spec, Sort.by("createdAt").descending())
+                .stream()
+                .map(CarMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public CarResponse get(Long id) {
         CarListing car = carRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Car not found"));
         return CarMapper.toResponse(car);
@@ -122,6 +147,7 @@ public class CarService {
         return CarMapper.toResponse(car);
     }
 
+    @Transactional(readOnly = true)
     public List<CarResponse> listByOwner(Long ownerId) {
         return carRepository.findAll((root, query, cb) -> cb.equal(root.get("owner").get("id"), ownerId))
                 .stream()

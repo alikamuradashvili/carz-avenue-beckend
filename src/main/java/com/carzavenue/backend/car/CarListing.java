@@ -47,7 +47,7 @@ public class CarListing {
     private String description;
     private String location;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "car_photos", joinColumns = @JoinColumn(name = "car_id"))
     @Column(name = "url")
     private List<String> photos = new ArrayList<>();

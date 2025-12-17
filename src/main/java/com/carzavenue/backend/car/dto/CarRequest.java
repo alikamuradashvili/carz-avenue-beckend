@@ -27,4 +27,6 @@ public class CarRequest {
     private String description;
     private String location;
     private List<String> photos;
+    // Accept alternative field name from frontend payloads
+    private List<String> images;
 }
