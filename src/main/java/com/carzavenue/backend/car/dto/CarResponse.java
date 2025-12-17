@@ -25,6 +25,8 @@ public class CarResponse {
     String description;
     String location;
     List<String> photos;
+    // Alias for clients expecting "images"
+    List<String> images;
     boolean isActive;
     boolean isVip;
     Instant vipExpiresAt;

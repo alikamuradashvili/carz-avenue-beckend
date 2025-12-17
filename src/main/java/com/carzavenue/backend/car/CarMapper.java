@@ -3,6 +3,8 @@ package com.carzavenue.backend.car;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 
+import java.util.List;
+
 public class CarMapper {
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
@@ -19,8 +21,9 @@ public class CarMapper {
         car.setColor(request.getColor());
         car.setDescription(request.getDescription());
         car.setLocation(request.getLocation());
-        if (request.getPhotos() != null) {
-            car.setPhotos(request.getPhotos());
+        List<String> photos = request.getPhotos() != null ? request.getPhotos() : request.getImages();
+        if (photos != null) {
+            car.setPhotos(photos);
         }
         return car;
     }
@@ -39,12 +42,14 @@ public class CarMapper {
         car.setColor(request.getColor());
         car.setDescription(request.getDescription());
         car.setLocation(request.getLocation());
-        if (request.getPhotos() != null) {
-            car.setPhotos(request.getPhotos());
+        List<String> photos = request.getPhotos() != null ? request.getPhotos() : request.getImages();
+        if (photos != null) {
+            car.setPhotos(photos);
         }
     }
 
     public static CarResponse toResponse(CarListing car) {
+        List<String> photos = car.getPhotos();
         return CarResponse.builder()
                 .id(car.getId())
                 .ownerId(car.getOwner().getId())
@@ -61,7 +66,8 @@ public class CarMapper {
                 .color(car.getColor())
                 .description(car.getDescription())
                 .location(car.getLocation())
-                .photos(car.getPhotos())
+                .photos(photos)
+                .images(photos)
                 .isActive(car.isActive())
                 .isVip(car.isVip())
                 .vipExpiresAt(car.getVipExpiresAt())
