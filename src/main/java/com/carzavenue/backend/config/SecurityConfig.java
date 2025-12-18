@@ -42,7 +42,8 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/uploads/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/cars", "/cars/**").permitAll()
+                        // Also allow legacy /carsall=true endpoint used by some clients
+                        .requestMatchers(HttpMethod.GET, "/cars", "/cars/**", "/carsall=true").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -63,10 +64,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:8081", "http://127.0.0.1:8081"));
+        // Frontend dev servers vary; allow all origins for GET resources.
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
