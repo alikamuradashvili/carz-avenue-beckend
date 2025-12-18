@@ -24,6 +24,7 @@ public class CarResponse {
     String color;
     String description;
     String location;
+    Long imageId;
     List<String> photos;
     // Alias for clients expecting "images"
     List<String> images;

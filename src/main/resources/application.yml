@@ -17,6 +17,10 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 server:
   port: ${PORT:8080}
@@ -30,6 +34,8 @@ app:
   upload:
     storage-path: ${IMAGE_STORAGE_PATH:uploads}
     base-url: ${IMAGE_BASE_URL:http://localhost:8080/uploads}
+  images:
+    storage-path: ${IMAGE_LIBRARY_PATH:uploads/images}
   vip:
     default-days: 7
 
