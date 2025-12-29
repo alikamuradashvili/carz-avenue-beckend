@@ -7,8 +7,11 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.security.Key;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
@@ -76,11 +79,30 @@ public class JwtService {
     }
 
     private Key getSigningKey(String secret) {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        if (!StringUtils.hasText(secret)) {
+            throw new IllegalStateException("JWT secret is empty");
+        }
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secret);
+        } catch (Exception ex) {
+            keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        }
+        if (keyBytes.length < 32) {
+            keyBytes = sha256(secret);
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public long getRefreshExpirationSeconds() {
         return refreshExpirationDays * 24L * 60L * 60L;
+    }
+
+    private byte[] sha256(String secret) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to derive JWT signing key", ex);
+        }
     }
 }
