@@ -9,6 +9,7 @@ import com.carzavenue.backend.user.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
@@ -79,6 +80,53 @@ public class CarController {
         return ResponseEntity.ok(ApiResponse.ok(carService.listAll()));
     }
 
+    @GetMapping("/makes")
+    @Operation(summary = "List available makes")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "OK",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
+                            @ExampleObject(
+                                    name = "makes",
+                                    value = "{\"success\":true,\"data\":[\"Toyota\",\"BMW\",\"Honda\"],\"error\":null}"
+                            )
+                    })
+            )
+    })
+    public ResponseEntity<ApiResponse<java.util.List<String>>> listMakes() {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listMakes()));
+    }
+
+    @GetMapping("/models")
+    @Operation(summary = "List models by make")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "OK",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
+                            @ExampleObject(
+                                    name = "models",
+                                    value = "{\"success\":true,\"data\":[\"Camry\",\"Corolla\"],\"error\":null}"
+                            )
+                    })
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Validation error",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
+                            @ExampleObject(
+                                    name = "invalid-make",
+                                    value = "{\"success\":false,\"error\":\"make is required\"}"
+                            )
+                    })
+            )
+    })
+    public ResponseEntity<ApiResponse<java.util.List<String>>> listModelsByMake(
+            @RequestParam("make") String make) {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listModelsByMake(make)));
+    }
+
     @GetMapping(params = "all=true")
     public ResponseEntity<ApiResponse<java.util.List<CarResponse>>> listAllWithQuery(
             @RequestParam(value = "make", required = false) String make,
@@ -127,9 +175,52 @@ public class CarController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create car (JSON)")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
+                    @ExampleObject(
+                            name = "valid",
+                            value = "{\n" +
+                                    "  \"title\": \"Toyota Camry 2020\",\n" +
+                                    "  \"make\": \"Toyota\",\n" +
+                                    "  \"model\": \"Camry\",\n" +
+                                    "  \"year\": 2020,\n" +
+                                    "  \"mileage\": 45000,\n" +
+                                    "  \"fuelType\": \"gasoline\",\n" +
+                                    "  \"transmission\": \"automatic\",\n" +
+                                    "  \"bodyType\": \"sedan\",\n" +
+                                    "  \"engineVolume\": 2.5,\n" +
+                                    "  \"price\": 18500,\n" +
+                                    "  \"color\": \"white\",\n" +
+                                    "  \"description\": \"Well maintained, single owner\",\n" +
+                                    "  \"location\": \"Tbilisi\",\n" +
+                                    "  \"photos\": [\"http://localhost:8080/uploads/example.jpg\"]\n" +
+                                    "}"
+                    ),
+                    @ExampleObject(
+                            name = "invalid",
+                            value = "{\n" +
+                                    "  \"title\": \"Toyota Civic\",\n" +
+                                    "  \"make\": \"Toyota\",\n" +
+                                    "  \"model\": \"Civic\",\n" +
+                                    "  \"year\": 2020,\n" +
+                                    "  \"price\": 12000\n" +
+                                    "}"
+                    )
+            })
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Created"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Validation error",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
+                            @ExampleObject(
+                                    name = "model-mismatch",
+                                    value = "{\"success\":false,\"error\":\"model does not belong to make\"}"
+                            )
+                    })
+            ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<ApiResponse<CarResponse>> create(@AuthenticationPrincipal SecurityUser principal,
