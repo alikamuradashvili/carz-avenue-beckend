@@ -113,6 +113,7 @@ public class CarService {
     @Transactional
     public CarResponse create(Long ownerId, CarRequest request) {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        validateMakeModel(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setOwner(owner);
         carRepository.save(car);
@@ -123,6 +124,7 @@ public class CarService {
     public CarResponse createWithImages(Long ownerId, CarRequest request,
                                         org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        validateMakeModel(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setOwner(owner);
 
@@ -152,6 +154,7 @@ public class CarService {
         if (!isAdmin && !car.getOwner().getId().equals(ownerId)) {
             throw new SecurityException("Not allowed");
         }
+        validateMakeModel(request.getMake(), request.getModel());
         CarMapper.updateEntity(car, request);
         carRepository.save(car);
         return CarMapper.toResponse(car);
@@ -186,5 +189,39 @@ public class CarService {
                 .stream()
                 .map(CarMapper::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> listModelsByMake(String make) {
+        if (make == null || make.trim().isEmpty()) {
+            throw new IllegalArgumentException("make is required");
+        }
+        List<String> models = carRepository.findDistinctModelsByMake(make.trim());
+        if (models.isEmpty()) {
+            throw new IllegalArgumentException("make not found");
+        }
+        return models;
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> listMakes() {
+        return carRepository.findDistinctMakes();
+    }
+
+    private void validateMakeModel(String make, String model) {
+        if (make == null || make.trim().isEmpty()) {
+            throw new IllegalArgumentException("make is required");
+        }
+        if (model == null || model.trim().isEmpty()) {
+            throw new IllegalArgumentException("model is required");
+        }
+        String cleanMake = make.trim();
+        String cleanModel = model.trim();
+        if (!carRepository.existsActiveMake(cleanMake)) {
+            throw new IllegalArgumentException("make not found");
+        }
+        if (!carRepository.existsActiveModelByMake(cleanMake, cleanModel)) {
+            throw new IllegalArgumentException("model does not belong to make");
+        }
     }
 }
