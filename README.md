@@ -43,3 +43,10 @@ Flyway migrations live in `src/main/resources/db/migration`. They create users, 
 - Refresh tokens are stored in DB; logout revokes them.
 - VIP ads store `isVip` and `vipExpiresAt`; listing query hides expired VIPs.
 - Static file serving maps `/uploads/**` to `IMAGE_STORAGE_PATH`. Use Cloudinary/S3 by swapping `UploadService`.
+
+## Photos / images for cars
+- Public reads: `GET /cars`, `/cars/all`, `/cars/{id}` return `photos` and `images` arrays; frontend can render either.
+- Upload flow (real data):
+  1. `POST /upload/image` (multipart/form-data, field `files`, auth) → returns image URLs (e.g. `http://localhost:8080/uploads/<uuid>.jpg`).
+  2. `POST /cars` or `PUT /cars/{id}` (auth) with `photos` (or `images`) containing those URLs.
+- Fallback (dev only): if a car has no stored photos, `CarMapper.toResponse` returns the local placeholder at `http://localhost:8080/images/default-car.jpg`. Rebuild/restart the backend to pick up this code. The frontend must point at the same base (e.g. `http://localhost:8080`).

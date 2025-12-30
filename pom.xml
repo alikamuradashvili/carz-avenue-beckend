@@ -10,6 +10,7 @@
   <properties>
     <java.version>17</java.version>
     <spring-boot.version>3.3.4</spring-boot.version>
+    <lombok.version>1.18.36</lombok.version>
   </properties>
   <build>
     <plugins>
@@ -34,6 +35,7 @@
         <version>3.11.0</version>
         <configuration>
           <release>${java.version}</release>
+          <parameters>true</parameters>
         </configuration>
       </plugin>
     </plugins>
@@ -104,6 +106,7 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
+      <version>${lombok.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>

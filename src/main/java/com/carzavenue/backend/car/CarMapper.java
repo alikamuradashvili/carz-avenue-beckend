@@ -3,7 +3,13 @@ package com.carzavenue.backend.car;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 public class CarMapper {
+    private static final String DEFAULT_IMAGE_URL = "http://localhost:8080/images/default-car.jpg";
+
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
         car.setTitle(request.getTitle());
@@ -19,8 +25,10 @@ public class CarMapper {
         car.setColor(request.getColor());
         car.setDescription(request.getDescription());
         car.setLocation(request.getLocation());
-        if (request.getPhotos() != null) {
-            car.setPhotos(request.getPhotos());
+        car.setImageId(request.getImageId());
+        List<String> photos = request.getPhotos() != null ? request.getPhotos() : request.getImages();
+        if (photos != null) {
+            car.setPhotos(sanitizePhotos(photos));
         }
         return car;
     }
@@ -39,12 +47,15 @@ public class CarMapper {
         car.setColor(request.getColor());
         car.setDescription(request.getDescription());
         car.setLocation(request.getLocation());
-        if (request.getPhotos() != null) {
-            car.setPhotos(request.getPhotos());
+        car.setImageId(request.getImageId());
+        List<String> photos = request.getPhotos() != null ? request.getPhotos() : request.getImages();
+        if (photos != null) {
+            car.setPhotos(sanitizePhotos(photos));
         }
     }
 
     public static CarResponse toResponse(CarListing car) {
+        List<String> photos = sanitizePhotos(car.getPhotos());
         return CarResponse.builder()
                 .id(car.getId())
                 .ownerId(car.getOwner().getId())
@@ -61,12 +72,41 @@ public class CarMapper {
                 .color(car.getColor())
                 .description(car.getDescription())
                 .location(car.getLocation())
-                .photos(car.getPhotos())
+                .imageId(car.getImageId())
+                .photos(photos)
+                .images(photos)
                 .isActive(car.isActive())
                 .isVip(car.isVip())
                 .vipExpiresAt(car.getVipExpiresAt())
                 .createdAt(car.getCreatedAt())
                 .updatedAt(car.getUpdatedAt())
                 .build();
+    }
+
+    private static List<String> sanitizePhotos(List<String> photos) {
+        if (photos == null || photos.isEmpty()) {
+            return new ArrayList<>(List.of(DEFAULT_IMAGE_URL));
+        }
+
+        List<String> sanitized = photos.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(url -> !url.isEmpty())
+                .map(CarMapper::replaceBlockedSources)
+                .toList();
+
+        if (sanitized.isEmpty()) {
+            return new ArrayList<>(List.of(DEFAULT_IMAGE_URL));
+        }
+
+        return new ArrayList<>(sanitized);
+    }
+
+    private static String replaceBlockedSources(String url) {
+        String lower = url.toLowerCase();
+        if (lower.contains("photos.app.goo.gl") || lower.contains("photos.google.com")) {
+            return DEFAULT_IMAGE_URL;
+        }
+        return url;
     }
 }
