@@ -2,6 +2,8 @@ package com.carzavenue.backend.car;
 
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
+import com.carzavenue.backend.image.ImageEntity;
+import com.carzavenue.backend.image.ImageStorageService;
 import com.carzavenue.backend.user.User;
 import com.carzavenue.backend.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,12 +24,15 @@ import java.util.Optional;
 public class CarService {
     private final CarListingRepository carRepository;
     private final UserRepository userRepository;
+    private final ImageStorageService imageStorageService;
     private final int vipDefaultDays;
 
     public CarService(CarListingRepository carRepository, UserRepository userRepository,
+                      ImageStorageService imageStorageService,
                       @org.springframework.beans.factory.annotation.Value("${app.vip.default-days:7}") int vipDefaultDays) {
         this.carRepository = carRepository;
         this.userRepository = userRepository;
+        this.imageStorageService = imageStorageService;
         this.vipDefaultDays = vipDefaultDays;
     }
 
@@ -109,6 +115,33 @@ public class CarService {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
         CarListing car = CarMapper.fromRequest(request);
         car.setOwner(owner);
+        carRepository.save(car);
+        return CarMapper.toResponse(car);
+    }
+
+    @Transactional
+    public CarResponse createWithImages(Long ownerId, CarRequest request,
+                                        org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
+        User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        CarListing car = CarMapper.fromRequest(request);
+        car.setOwner(owner);
+
+        List<String> photoUrls = new ArrayList<>();
+        if (images != null) {
+            for (org.springframework.web.multipart.MultipartFile image : images) {
+                if (image != null && !image.isEmpty()) {
+                    ImageEntity saved = imageStorageService.save(image);
+                    photoUrls.add("/images/" + saved.getId());
+                    if (car.getImageId() == null) {
+                        car.setImageId(saved.getId());
+                    }
+                }
+            }
+        }
+        if (!photoUrls.isEmpty()) {
+            car.setPhotos(photoUrls);
+        }
+
         carRepository.save(car);
         return CarMapper.toResponse(car);
     }
