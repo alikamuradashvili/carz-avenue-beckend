@@ -26,7 +26,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 - `REFRESH_SECRET` (base64-encoded, 256-bit) for refresh tokens
 - `IMAGE_STORAGE_PATH` (default `uploads`) local folder for images
 - `IMAGE_BASE_URL` (default `http://localhost:8080/uploads`)
-- `PORT` (optional, default 8080)
+- `SERVER_PORT` (optional, default 8080)
 
 ## Migrations
 Flyway migrations live in `src/main/resources/db/migration`. They create users, car listings (with photos, VIP fields), and refresh tokens.

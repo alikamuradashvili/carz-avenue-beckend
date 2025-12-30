@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
                         // Also allow legacy /carsall=true endpoint used by some clients
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**", "/carsall=true").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/cars").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )

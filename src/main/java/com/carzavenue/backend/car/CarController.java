@@ -1,15 +1,24 @@
 package com.carzavenue.backend.car;
 
+import com.carzavenue.backend.car.dto.CarMultipartRequest;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.common.ApiResponse;
 import com.carzavenue.backend.security.SecurityUser;
 import com.carzavenue.backend.user.Role;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -116,10 +125,58 @@ public class CarController {
         return ResponseEntity.ok(ApiResponse.ok(carService.get(id)));
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create car (JSON)")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Created"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ResponseEntity<ApiResponse<CarResponse>> create(@AuthenticationPrincipal SecurityUser principal,
                                                            @Valid @RequestBody CarRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(carService.create(principal.getUser().getId(), request)));
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Unauthorized"));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(carService.create(principal.getUser().getId(), request)));
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create car (multipart)")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Created"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<ApiResponse<CarResponse>> createMultipart(
+            @AuthenticationPrincipal SecurityUser principal,
+            @Valid @ModelAttribute CarMultipartRequest request,
+            @RequestPart(value = "images", required = false)
+            @Parameter(description = "Optional image files",
+                    content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                            schema = @Schema(type = "string", format = "binary")))
+            MultipartFile[] images) throws java.io.IOException {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Unauthorized"));
+        }
+        CarRequest mappedRequest = new CarRequest();
+        mappedRequest.setTitle(request.getTitle());
+        mappedRequest.setMake(request.getMake());
+        mappedRequest.setModel(request.getModel());
+        mappedRequest.setYear(request.getYear());
+        mappedRequest.setMileage(request.getMileage());
+        mappedRequest.setFuelType(request.getFuelType());
+        mappedRequest.setTransmission(request.getTransmission());
+        mappedRequest.setBodyType(request.getBodyType());
+        mappedRequest.setEngineVolume(request.getEngineVolume());
+        mappedRequest.setPrice(request.getPrice());
+        mappedRequest.setColor(request.getColor());
+        mappedRequest.setDescription(request.getDescription());
+        mappedRequest.setLocation(request.getLocation());
+        mappedRequest.setImageId(request.getImageId());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(carService.createWithImages(principal.getUser().getId(), mappedRequest, images)));
     }
 
     @PutMapping("/{id}")
