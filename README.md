@@ -31,12 +31,118 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 ## Migrations
 Flyway migrations live in `src/main/resources/db/migration`. They create users, car listings (with photos, VIP fields), and refresh tokens.
 
+## Car make/model master list
+The backend maintains a normalized master list of manufacturers (`car_make`) and models (`car_model`) for dropdowns and filtering. Listings are stored separately in `car_listing`.
+
+Data flow:
+`Seeder` -> `car_make` / `car_model` -> API -> frontend dropdowns
+
+### Database schema overview
+Core tables and relationships:
+- `car_make`: stores all manufacturers (`id`, `name`).
+- `car_model`: stores models (`id`, `name`) with `make_id` FK to `car_make(id)`.
+- `car_listing`: stores actual listings (`make`, `model`, and other listing fields). This is not FK-linked to `car_make` or `car_model` to keep listings flexible.
+
+Schema snippet (from V13):
+```sql
+CREATE TABLE car_make (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE car_model (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    make_id BIGINT NOT NULL REFERENCES car_make(id),
+    UNIQUE (make_id, name)
+);
+```
+
+### Flyway migrations for master data
+- `src/main/resources/db/migration/V13__create_car_make_model_tables.sql` creates `car_make` and `car_model`.
+- `src/main/resources/db/migration/V14__seed_car_makes.sql` seeds the master make list.
+
+### How to seed data
+1) Flyway on app startup (default)
+   - Migrations run automatically on `mvn spring-boot:run`.
+   - This will create tables and insert the base make list.
+
+2) Optional NHTSA-based seeder (profile-based)
+   - `MakeModelSeeder` can fetch makes/models from NHTSA when the `seed-makes` profile is enabled.
+   - It normalizes names and upserts into `car_make` and `car_model`.
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=seed-makes
+```
+Note: the NHTSA seeder calls `https://vpic.nhtsa.dot.gov/api/vehicles` and requires network access.
+
+### API endpoints
+- `GET /api/makes`
+  - Returns all makes (for dropdowns).
+  - Example:
+```bash
+curl http://localhost:8080/api/makes
+```
+- `GET /api/models?makeId=`
+  - Returns models for a given make.
+  - Example:
+```bash
+curl "http://localhost:8080/api/models?makeId=1"
+```
+
+### Testing notes
+- Tests use PostgreSQL Testcontainers (`src/test/java/.../PostgresTestContainer.java`).
+- Docker is required to run `mvn test`.
+
 ## Key Endpoints
 - Auth: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/change-password`, `/auth/change-email`
 - Users: `/users/me`, `/users/me/listings`, `/users/me` (PUT)
 - Cars: `/cars` (filters + paging), `/cars/{id}`, `/cars` (POST), `/cars/{id}` (PUT/DELETE), `/cars/{id}/vip` (POST)
 - Upload: `/upload/image` (multipart `files[]`, auth required)
 - Admin (ROLE_ADMIN): `/admin/listings`, `/admin/listings/{id}` (DELETE), `/admin/users`, `/admin/users/{id}/block?blocked=true|false`
+
+### Make / Model Master List Endpoints
+- `GET /api/makes` - Returns all car manufacturers from `car_make`.
+- `GET /api/models?makeId={id}` - Returns models for the selected manufacturer from `car_model`.
+- These endpoints power frontend Make/Model dropdowns.
+- Data comes from the database (not from car listings).
+- Master data is seeded via Flyway (`V14__seed_car_makes.sql`) or the NHTSA seeder.
+
+## Database Relationships (ER Overview)
+- `car_make` (parent): stores all manufacturers.
+- `car_model` (child): stores models, FK -> `car_make.id`.
+- `car_listing`: stores actual car listings and references make/model by name.
+
+Notes:
+- `car_make` -> `car_model` is a one-to-many relationship.
+- `car_listing` represents real cars for sale.
+- Make/Model master data is independent from listings.
+
+Example create car listing request:
+```json
+{
+  "title": "Toyota Camry",
+  "make": "Toyota",
+  "model": "Camry",
+  "year": 2020,
+  "price": 15000
+}
+```
+
+## Database & Flyway Verification (Troubleshooting)
+- If `car_make` / `car_model` tables are not visible, the most common cause is connecting to a different database than the one used by the application at runtime.
+- Verify the active database on application startup by checking logs for:
+  - Datasource URL
+  - Database name and port
+  - `car_make` table existence and row count
+- Flyway migrations run on the same datasource defined by `spring.datasource.*` and `spring.flyway.*`.
+- Startup diagnostics: `DatabaseStartupLogger` logs the active database and `car_make` status to help debug mismatches.
+
+Example expected startup log:
+```
+Datasource URL: jdbc:postgresql://localhost:5432/<db_name>
+Database name: <db_name>, port: 5432
+car_make table exists=true, row count=XXX
+```
 
 ## Notes
 - Access token: 15m default. Refresh token: 30d default.
