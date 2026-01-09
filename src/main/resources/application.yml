@@ -15,6 +15,9 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
+    user: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
     locations: classpath:db/migration
     baseline-on-migrate: true
   servlet:

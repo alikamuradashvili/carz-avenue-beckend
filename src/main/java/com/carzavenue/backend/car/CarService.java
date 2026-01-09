@@ -23,14 +23,21 @@ import java.util.Optional;
 @Service
 public class CarService {
     private final CarListingRepository carRepository;
+    private final CarManufacturerRepository manufacturerRepository;
+    private final CarModelRepository modelRepository;
     private final UserRepository userRepository;
     private final ImageStorageService imageStorageService;
     private final int vipDefaultDays;
 
-    public CarService(CarListingRepository carRepository, UserRepository userRepository,
+    public CarService(CarListingRepository carRepository,
+                      CarManufacturerRepository manufacturerRepository,
+                      CarModelRepository modelRepository,
+                      UserRepository userRepository,
                       ImageStorageService imageStorageService,
                       @org.springframework.beans.factory.annotation.Value("${app.vip.default-days:7}") int vipDefaultDays) {
         this.carRepository = carRepository;
+        this.manufacturerRepository = manufacturerRepository;
+        this.modelRepository = modelRepository;
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
         this.vipDefaultDays = vipDefaultDays;
@@ -113,7 +120,7 @@ public class CarService {
     @Transactional
     public CarResponse create(Long ownerId, CarRequest request) {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
-        validateMakeModel(request.getMake(), request.getModel());
+        validateManufacturerModel(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setOwner(owner);
         carRepository.save(car);
@@ -124,7 +131,7 @@ public class CarService {
     public CarResponse createWithImages(Long ownerId, CarRequest request,
                                         org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
-        validateMakeModel(request.getMake(), request.getModel());
+        validateManufacturerModel(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setOwner(owner);
 
@@ -154,7 +161,7 @@ public class CarService {
         if (!isAdmin && !car.getOwner().getId().equals(ownerId)) {
             throw new SecurityException("Not allowed");
         }
-        validateMakeModel(request.getMake(), request.getModel());
+        validateManufacturerModel(request.getMake(), request.getModel());
         CarMapper.updateEntity(car, request);
         carRepository.save(car);
         return CarMapper.toResponse(car);
@@ -192,36 +199,39 @@ public class CarService {
     }
 
     @Transactional(readOnly = true)
-    public List<String> listModelsByMake(String make) {
-        if (make == null || make.trim().isEmpty()) {
-            throw new IllegalArgumentException("make is required");
+    public List<String> listModelsByManufacturer(String manufacturer) {
+        if (manufacturer == null || manufacturer.trim().isEmpty()) {
+            throw new IllegalArgumentException("manufacturer is required");
         }
-        List<String> models = carRepository.findDistinctModelsByMake(make.trim());
-        if (models.isEmpty()) {
-            throw new IllegalArgumentException("make not found");
+        String cleanManufacturer = manufacturer.trim();
+        Optional<CarManufacturer> carManufacturer = manufacturerRepository.findByNameIgnoreCase(cleanManufacturer);
+        if (carManufacturer.isEmpty()) {
+            return List.of();
         }
-        return models;
+        return modelRepository.findAllByManufacturerIdOrderByNameAsc(carManufacturer.get().getId())
+                .stream()
+                .map(CarModel::getName)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<String> listMakes() {
-        return carRepository.findDistinctMakes();
+    public List<CarManufacturer> listManufacturers() {
+        return manufacturerRepository.findAllByOrderByIdAsc();
     }
 
-    private void validateMakeModel(String make, String model) {
-        if (make == null || make.trim().isEmpty()) {
-            throw new IllegalArgumentException("make is required");
+    private void validateManufacturerModel(String manufacturer, String model) {
+        if (manufacturer == null || manufacturer.trim().isEmpty()) {
+            throw new IllegalArgumentException("manufacturer is required");
         }
         if (model == null || model.trim().isEmpty()) {
             throw new IllegalArgumentException("model is required");
         }
-        String cleanMake = make.trim();
+        String cleanManufacturer = manufacturer.trim();
         String cleanModel = model.trim();
-        if (!carRepository.existsActiveMake(cleanMake)) {
-            throw new IllegalArgumentException("make not found");
-        }
-        if (!carRepository.existsActiveModelByMake(cleanMake, cleanModel)) {
-            throw new IllegalArgumentException("model does not belong to make");
+        CarManufacturer carManufacturer = manufacturerRepository.findByNameIgnoreCase(cleanManufacturer)
+                .orElseThrow(() -> new IllegalArgumentException("manufacturer not found"));
+        if (!modelRepository.existsByManufacturerIdAndNameIgnoreCase(carManufacturer.getId(), cleanModel)) {
+            throw new IllegalArgumentException("model does not belong to manufacturer");
         }
     }
 }

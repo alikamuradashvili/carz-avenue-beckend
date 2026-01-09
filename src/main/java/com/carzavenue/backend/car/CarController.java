@@ -80,26 +80,26 @@ public class CarController {
         return ResponseEntity.ok(ApiResponse.ok(carService.listAll()));
     }
 
-    @GetMapping("/makes")
-    @Operation(summary = "List available makes")
+    @GetMapping("/manufacturers")
+    @Operation(summary = "List available manufacturers")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "OK",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
                             @ExampleObject(
-                                    name = "makes",
+                                    name = "manufacturers",
                                     value = "{\"success\":true,\"data\":[\"Toyota\",\"BMW\",\"Honda\"],\"error\":null}"
                             )
                     })
             )
     })
-    public ResponseEntity<ApiResponse<java.util.List<String>>> listMakes() {
-        return ResponseEntity.ok(ApiResponse.ok(carService.listMakes()));
+    public ResponseEntity<ApiResponse<java.util.List<CarManufacturer>>> listManufacturers() {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listManufacturers()));
     }
 
     @GetMapping("/models")
-    @Operation(summary = "List models by make")
+    @Operation(summary = "List models by manufacturer")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -116,15 +116,15 @@ public class CarController {
                     description = "Validation error",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, examples = {
                             @ExampleObject(
-                                    name = "invalid-make",
-                                    value = "{\"success\":false,\"error\":\"make is required\"}"
+                                    name = "invalid-manufacturer",
+                                    value = "{\"success\":false,\"error\":\"manufacturer is required\"}"
                             )
                     })
             )
     })
-    public ResponseEntity<ApiResponse<java.util.List<String>>> listModelsByMake(
-            @RequestParam("make") String make) {
-        return ResponseEntity.ok(ApiResponse.ok(carService.listModelsByMake(make)));
+    public ResponseEntity<ApiResponse<java.util.List<String>>> listModelsByManufacturer(
+            @RequestParam("manufacturer") String manufacturer) {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listModelsByManufacturer(manufacturer)));
     }
 
     @GetMapping(params = "all=true")
