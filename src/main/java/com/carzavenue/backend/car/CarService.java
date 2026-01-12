@@ -1,4 +1,4 @@
-package com.carzavenue.backend.car;
+﻿package com.carzavenue.backend.car;
 
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
@@ -120,8 +120,9 @@ public class CarService {
     @Transactional
     public CarResponse create(Long ownerId, CarRequest request) {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
-        validateManufacturerModel(request.getMake(), request.getModel());
+        ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
+        car.setTitle(buildTitle(request));
         car.setOwner(owner);
         carRepository.save(car);
         return CarMapper.toResponse(car);
@@ -131,8 +132,9 @@ public class CarService {
     public CarResponse createWithImages(Long ownerId, CarRequest request,
                                         org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
-        validateManufacturerModel(request.getMake(), request.getModel());
+        ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
+        car.setTitle(buildTitle(request));
         car.setOwner(owner);
 
         List<String> photoUrls = new ArrayList<>();
@@ -161,8 +163,9 @@ public class CarService {
         if (!isAdmin && !car.getOwner().getId().equals(ownerId)) {
             throw new SecurityException("Not allowed");
         }
-        validateManufacturerModel(request.getMake(), request.getModel());
+        ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarMapper.updateEntity(car, request);
+        car.setTitle(buildTitle(request));
         carRepository.save(car);
         return CarMapper.toResponse(car);
     }
@@ -219,19 +222,35 @@ public class CarService {
         return manufacturerRepository.findAllByOrderByIdAsc();
     }
 
-    private void validateManufacturerModel(String manufacturer, String model) {
-        if (manufacturer == null || manufacturer.trim().isEmpty()) {
-            throw new IllegalArgumentException("manufacturer is required");
-        }
-        if (model == null || model.trim().isEmpty()) {
-            throw new IllegalArgumentException("model is required");
-        }
-        String cleanManufacturer = manufacturer.trim();
-        String cleanModel = model.trim();
+    private void ensureManufacturerModelExists(String manufacturer, String model) {
+        String cleanManufacturer = requireText(manufacturer, "manufacturer");
+        String cleanModel = requireText(model, "model");
         CarManufacturer carManufacturer = manufacturerRepository.findByNameIgnoreCase(cleanManufacturer)
-                .orElseThrow(() -> new IllegalArgumentException("manufacturer not found"));
-        if (!modelRepository.existsByManufacturerIdAndNameIgnoreCase(carManufacturer.getId(), cleanModel)) {
-            throw new IllegalArgumentException("model does not belong to manufacturer");
+                .orElseGet(() -> manufacturerRepository.save(CarManufacturer.builder()
+                        .name(cleanManufacturer)
+                        .build()));
+        modelRepository.findByManufacturerIdAndNameIgnoreCase(carManufacturer.getId(), cleanModel)
+                .orElseGet(() -> modelRepository.save(CarModel.builder()
+                        .manufacturer(carManufacturer)
+                        .name(cleanModel)
+                        .build()));
+    }
+
+    private String buildTitle(CarRequest request) {
+        String make = requireText(request.getMake(), "manufacturer");
+        String model = requireText(request.getModel(), "model");
+        Integer year = request.getYear();
+        if (year == null) {
+            throw new IllegalArgumentException("year is required");
         }
+        String listingType = requireText(request.getListingType(), "listingType");
+        return make + " " + model + " " + year + " \u2013 " + listingType;
+    }
+
+    private String requireText(String value, String field) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }
