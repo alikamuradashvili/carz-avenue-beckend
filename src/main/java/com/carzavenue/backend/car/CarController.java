@@ -261,6 +261,7 @@ public class CarController {
         mappedRequest.setBodyType(request.getBodyType());
         mappedRequest.setEngineVolume(request.getEngineVolume());
         mappedRequest.setPrice(request.getPrice());
+        mappedRequest.setListingType(request.getListingType());
         mappedRequest.setColor(request.getColor());
         mappedRequest.setDescription(request.getDescription());
         mappedRequest.setLocation(request.getLocation());

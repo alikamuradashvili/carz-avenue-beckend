@@ -12,7 +12,6 @@ public class CarMapper {
 
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
-        car.setTitle(request.getTitle());
         car.setMake(request.getMake());
         car.setModel(request.getModel());
         car.setYear(request.getYear());
@@ -34,7 +33,6 @@ public class CarMapper {
     }
 
     public static void updateEntity(CarListing car, CarRequest request) {
-        car.setTitle(request.getTitle());
         car.setMake(request.getMake());
         car.setModel(request.getModel());
         car.setYear(request.getYear());
