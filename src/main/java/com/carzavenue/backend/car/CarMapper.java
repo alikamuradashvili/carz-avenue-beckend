@@ -14,6 +14,7 @@ public class CarMapper {
         CarListing car = new CarListing();
         car.setMake(request.getMake());
         car.setModel(request.getModel());
+        car.setVinCode(request.getVinCode());
         car.setYear(request.getYear());
         car.setMileage(request.getMileage());
         car.setFuelType(request.getFuelType());
@@ -35,6 +36,7 @@ public class CarMapper {
     public static void updateEntity(CarListing car, CarRequest request) {
         car.setMake(request.getMake());
         car.setModel(request.getModel());
+        car.setVinCode(request.getVinCode());
         car.setYear(request.getYear());
         car.setMileage(request.getMileage());
         car.setFuelType(request.getFuelType());

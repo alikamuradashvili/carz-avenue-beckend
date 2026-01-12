@@ -24,6 +24,7 @@ public class CarRequest {
     private Double price;
     @NotBlank
     private String listingType;
+    private String vinCode;
     private String color;
     private String description;
     private String location;

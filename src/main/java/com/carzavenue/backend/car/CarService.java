@@ -7,12 +7,15 @@ import com.carzavenue.backend.image.ImageStorageService;
 import com.carzavenue.backend.user.User;
 import com.carzavenue.backend.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -120,6 +123,7 @@ public class CarService {
     @Transactional
     public CarResponse create(Long ownerId, CarRequest request) {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        request.setVinCode(normalizeVinCode(resolveVinCode(request)));
         ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setTitle(buildTitle(request));
@@ -132,6 +136,7 @@ public class CarService {
     public CarResponse createWithImages(Long ownerId, CarRequest request,
                                         org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        request.setVinCode(normalizeVinCode(resolveVinCode(request)));
         ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setTitle(buildTitle(request));
@@ -163,6 +168,7 @@ public class CarService {
         if (!isAdmin && !car.getOwner().getId().equals(ownerId)) {
             throw new SecurityException("Not allowed");
         }
+        request.setVinCode(normalizeVinCode(resolveVinCode(request)));
         ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarMapper.updateEntity(car, request);
         car.setTitle(buildTitle(request));
@@ -234,6 +240,40 @@ public class CarService {
                         .manufacturer(carManufacturer)
                         .name(cleanModel)
                         .build()));
+    }
+
+    private String resolveVinCode(CarRequest request) {
+        String vinCode = request.getVinCode();
+        if (vinCode != null && !vinCode.trim().isEmpty()) {
+            return vinCode;
+        }
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null) {
+            return vinCode;
+        }
+        HttpServletRequest httpRequest = attrs.getRequest();
+        if (httpRequest == null) {
+            return vinCode;
+        }
+        String paramVinCode = httpRequest.getParameter("vinCode");
+        if (paramVinCode != null && !paramVinCode.trim().isEmpty()) {
+            return paramVinCode;
+        }
+        return vinCode;
+    }
+
+    private String normalizeVinCode(String vinCode) {
+        if (vinCode == null || vinCode.trim().isEmpty()) {
+            return null;
+        }
+        String normalized = vinCode.replaceAll("\\s+", "").toUpperCase();
+        if (normalized.length() != 17) {
+            throw new IllegalArgumentException("vinCode must be 17 characters");
+        }
+        if (!normalized.matches("[A-HJ-NPR-Z0-9]{17}")) {
+            throw new IllegalArgumentException("vinCode contains invalid characters");
+        }
+        return normalized;
     }
 
     private String buildTitle(CarRequest request) {

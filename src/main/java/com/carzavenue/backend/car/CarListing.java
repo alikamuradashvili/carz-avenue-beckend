@@ -35,6 +35,9 @@ public class CarListing {
     @Column(nullable = false)
     private String model;
 
+    @Column(name = "vin_code", length = 17)
+    private String vinCode;
+
     private Integer year;
     private Integer mileage;
     private String fuelType;
