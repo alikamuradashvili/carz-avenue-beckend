@@ -39,9 +39,10 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/auth/**",
                                 "/uploads/**"
                         ).permitAll()
+                        .requestMatchers("/auth/me").authenticated()
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
                         // Also allow legacy /carsall=true endpoint used by some clients
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**", "/carsall=true").permitAll()

@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
     username: ${DATABASE_USER:postgres}
@@ -15,6 +17,9 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
+    user: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
     locations: classpath:db/migration
     baseline-on-migrate: true
   servlet:
@@ -38,6 +43,13 @@ app:
     storage-path: ${IMAGE_LIBRARY_PATH:uploads/images}
   vip:
     default-days: 7
+
+google:
+  oauth:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:}
+    frontend-callback-url: ${FRONTEND_CALLBACK_URL:}
 
 logging:
   level:

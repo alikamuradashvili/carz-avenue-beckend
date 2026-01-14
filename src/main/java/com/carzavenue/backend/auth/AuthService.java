@@ -2,6 +2,7 @@ package com.carzavenue.backend.auth;
 
 import com.carzavenue.backend.auth.dto.*;
 import com.carzavenue.backend.security.JwtService;
+import com.carzavenue.backend.user.AuthProvider;
 import com.carzavenue.backend.user.Role;
 import com.carzavenue.backend.user.User;
 import com.carzavenue.backend.user.UserRepository;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -47,6 +49,7 @@ public class AuthService {
                 .name(request.getName())
                 .phoneNumber(request.getPhoneNumber())
                 .role(Role.USER)
+                .provider(AuthProvider.LOCAL)
                 .build();
         userRepository.save(user);
         return RegisterResponse.builder()
@@ -63,6 +66,36 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return issueTokens(user);
+    }
+
+    @Transactional
+    public TokenResponse loginWithGoogle(String email, String name, String googleSub) {
+        User user = userRepository.findByGoogleSub(googleSub).orElse(null);
+        if (user == null) {
+            user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                String fallbackName = (name == null || name.isBlank()) ? email : name;
+                user = User.builder()
+                        .email(email)
+                        .passwordHash(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .name(fallbackName)
+                        .role(Role.USER)
+                        .provider(AuthProvider.GOOGLE)
+                        .googleSub(googleSub)
+                        .build();
+            } else {
+                if (user.getGoogleSub() != null && !user.getGoogleSub().equals(googleSub)) {
+                    throw new IllegalArgumentException("Email already linked to another Google account");
+                }
+                user.setGoogleSub(googleSub);
+                user.setProvider(AuthProvider.GOOGLE);
+                if (user.getName() == null || user.getName().isBlank()) {
+                    user.setName((name == null || name.isBlank()) ? email : name);
+                }
+            }
+            userRepository.save(user);
+        }
         return issueTokens(user);
     }
 
