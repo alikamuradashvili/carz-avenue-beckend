@@ -30,10 +30,20 @@ public class User {
 
     private String phoneNumber;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.USER;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AuthProvider provider = AuthProvider.LOCAL;
+
+    @Column(name = "google_sub", unique = true)
+    private String googleSub;
+
+    @Builder.Default
     @Column(nullable = false)
     private boolean isBlocked = false;
 
