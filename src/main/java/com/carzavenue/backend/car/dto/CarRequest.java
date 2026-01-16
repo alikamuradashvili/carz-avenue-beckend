@@ -1,4 +1,4 @@
-﻿package com.carzavenue.backend.car.dto;
+package com.carzavenue.backend.car.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
