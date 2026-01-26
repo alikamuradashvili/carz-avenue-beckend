@@ -11,16 +11,20 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
     private final AuthService authService;
     private final GoogleOAuthService googleOAuthService;
+    private final Environment environment;
 
-    public AuthController(AuthService authService, GoogleOAuthService googleOAuthService) {
+    public AuthController(AuthService authService, GoogleOAuthService googleOAuthService, Environment environment) {
         this.authService = authService;
         this.googleOAuthService = googleOAuthService;
+        this.environment = environment;
     }
 
     @PostMapping("/register")
@@ -78,7 +82,12 @@ public class AuthController {
         try {
             return ResponseEntity.ok(ApiResponse.ok(googleOAuthService.buildAuthorizationUrl()));
         } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(ex.getMessage()));
+            if (environment.acceptsProfiles(Profiles.of("local", "debug"))) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(ApiResponse.error("Google OAuth not configured (local mode)"));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(ex.getMessage()));
         }
     }
 

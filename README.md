@@ -46,6 +46,34 @@ Steps to enable Google login in dev:
    - `FRONTEND_CALLBACK_URL=http://localhost:5174/auth/callback`
 6) Restart the backend after setting env vars (required).
 Note: if any Google OAuth env var is missing, the backend will fail startup with a clear error.
+Note: when running with `local` or `debug` profiles, the backend will start even if Google OAuth is missing.
+      In that case, the Google login button should be disabled in the frontend.
+
+### Local development (no Google OAuth required)
+Start with the local profile to skip OAuth validation:
+```bash
+mvn spring-boot:run -Dspring.profiles.active=local
+```
+Default/prod profiles fail fast if OAuth env vars are missing.
+
+### Google OAuth enabled (local or prod)
+Set the env vars and start normally:
+```bash
+GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=... GOOGLE_REDIRECT_URI=http://localhost:8080/auth/google/callback mvn spring-boot:run
+```
+
+### Fixing "Error 401: invalid_client"
+Google will return `invalid_client` when the OAuth client or redirect URI do not match.
+- OAuth client type MUST be `Web application`.
+- Authorized redirect URI MUST match exactly: `http://localhost:8080/auth/google/callback`
+- Client ID MUST end with `.apps.googleusercontent.com`.
+- No trailing slash differences are allowed.
+
+Checklist:
+- Confirm the backend DEBUG log shows the exact `client_id` and `redirect_uri` used.
+- In Google Cloud Console, verify the OAuth client type is `Web application`.
+- Ensure the Authorized redirect URI exactly matches the backend log (case, scheme, host, port, path).
+- Confirm the `client_id` in the log matches the Google Console credential and ends with `.apps.googleusercontent.com`.
 
 ### Example application.yml snippet
 ```yaml
@@ -66,7 +94,12 @@ $env:FRONTEND_CALLBACK_URL="http://localhost:5174/auth/callback"
 mvn spring-boot:run
 ```
 Note: use the same terminal window and restart the backend after changes.
-Note: `.env` is supported via Spring config import. Restart the backend after edits.
+Note: `.env` is supported only when using `local` or `debug` profiles. Restart the backend after edits.
+Tip: On Windows PowerShell, prefer JVM system properties over `spring-boot.run.arguments`.
+Example:
+```powershell
+mvn spring-boot:run -Dlogging.level.com.carzavenue.backend.auth.GoogleOAuthService=DEBUG
+```
 
 ### macOS / Linux (bash)
 ```bash
@@ -93,6 +126,40 @@ environment:
   GOOGLE_REDIRECT_URI: http://localhost:8080/auth/google/callback
   FRONTEND_CALLBACK_URL: http://localhost:5174/auth/callback
 ```
+
+### Debug logging profile
+Enable a `debug` profile to turn on Google OAuth DEBUG logs:
+```bash
+mvn spring-boot:run -Dspring.profiles.active=debug
+```
+
+### Local .env support (local/debug only)
+If you run with `-Dspring.profiles.active=local` or `debug`, the backend will load `.env` if it exists
+and use `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`. In all other profiles,
+the backend only uses environment variables and fails fast if they are missing.
+
+### How to run locally in IntelliJ
+- VM option: `-Dspring.profiles.active=local`
+- Optional env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
+- Default profile fails on purpose to prevent deploying with missing OAuth config.
+
+### Local run (no Google credentials required)
+```powershell
+mvn spring-boot:run -Dspring.profiles.active=local
+```
+
+### OAuth run (with credentials)
+```powershell
+$env:GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+$env:GOOGLE_CLIENT_SECRET="your-client-secret"
+$env:GOOGLE_REDIRECT_URI="http://localhost:8080/auth/google/callback"
+mvn spring-boot:run
+```
+
+Expected startup logs:
+- `Active profiles: local` (or `default` in prod)
+- `Google OAuth local mode: true|false`
+- `Google OAuth configured: true|false`
 
 ### Verification
 1) Start backend and confirm log line:
