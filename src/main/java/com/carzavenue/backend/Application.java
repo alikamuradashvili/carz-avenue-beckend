@@ -7,6 +7,7 @@ import com.carzavenue.backend.config.GoogleOAuthProperties;
 import io.github.cdimascio.dotenv.Dotenv;
 
 import java.util.Arrays;
+import java.nio.file.Path;
 
 @SpringBootApplication
 @EnableConfigurationProperties(GoogleOAuthProperties.class)
@@ -17,13 +18,22 @@ public class Application {
     }
 
     private static void loadDotenvForLocalProfiles() {
-        if (!isLocalProfileActive()) {
-            return;
-        }
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        Dotenv dotenv = Dotenv.configure()
+                .directory(resolveDotenvDirectory())
+                .ignoreIfMissing()
+                .load();
         applyIfMissing("GOOGLE_CLIENT_ID", dotenv);
         applyIfMissing("GOOGLE_CLIENT_SECRET", dotenv);
         applyIfMissing("GOOGLE_REDIRECT_URI", dotenv);
+        applyIfMissing("MAIL_HOST", dotenv);
+        applyIfMissing("MAIL_PORT", dotenv);
+        applyIfMissing("MAIL_USERNAME", dotenv);
+        applyIfMissing("MAIL_PASSWORD", dotenv);
+        applyIfMissing("MAIL_SMTP_AUTH", dotenv);
+        applyIfMissing("MAIL_SMTP_STARTTLS", dotenv);
+        applyIfMissing("RESET_PASSWORD_FRONTEND_URL", dotenv);
+        applyIfMissing("RESET_PASSWORD_FROM_EMAIL", dotenv);
+        applyIfMissing("RESET_PASSWORD_EXPIRATION_MINUTES", dotenv);
     }
 
     private static boolean isLocalProfileActive() {
@@ -47,5 +57,16 @@ public class Application {
         if (value != null && !value.isBlank()) {
             System.setProperty(key, value);
         }
+    }
+
+    private static String resolveDotenvDirectory() {
+        Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        for (int i = 0; i < 6 && current != null; i++) {
+            if (current.resolve(".env").toFile().exists()) {
+                return current.toString();
+            }
+            current = current.getParent();
+        }
+        return System.getProperty("user.dir");
     }
 }

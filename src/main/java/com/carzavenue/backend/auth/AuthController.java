@@ -19,11 +19,16 @@ import org.springframework.core.env.Profiles;
 public class AuthController {
     private final AuthService authService;
     private final GoogleOAuthService googleOAuthService;
+    private final PasswordResetService passwordResetService;
     private final Environment environment;
 
-    public AuthController(AuthService authService, GoogleOAuthService googleOAuthService, Environment environment) {
+    public AuthController(AuthService authService,
+                          GoogleOAuthService googleOAuthService,
+                          PasswordResetService passwordResetService,
+                          Environment environment) {
         this.authService = authService;
         this.googleOAuthService = googleOAuthService;
+        this.passwordResetService = passwordResetService;
         this.environment = environment;
     }
 
@@ -45,6 +50,18 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@Validated @RequestBody RefreshRequest request) {
         authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Validated @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Validated @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
