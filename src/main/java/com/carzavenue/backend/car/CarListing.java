@@ -62,6 +62,11 @@ public class CarListing {
     private boolean isVip = false;
     private Instant vipExpiresAt;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AdStatus status = AdStatus.ACTIVE;
+
     @CreationTimestamp
     private Instant createdAt;
 

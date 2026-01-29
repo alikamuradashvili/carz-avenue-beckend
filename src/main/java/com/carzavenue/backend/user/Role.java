@@ -1,5 +1,5 @@
 package com.carzavenue.backend.user;
 
 public enum Role {
-    USER, ADMIN
+    USER, ADMIN, ADMINISTRATOR
 }

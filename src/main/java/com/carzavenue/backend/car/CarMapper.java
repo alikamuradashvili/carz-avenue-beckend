@@ -12,6 +12,8 @@ public class CarMapper {
 
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
+        car.setStatus(AdStatus.ACTIVE);
+        car.setActive(true);
         car.setMake(request.getMake());
         car.setModel(request.getModel());
         car.setVinCode(request.getVinCode());
