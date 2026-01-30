@@ -12,6 +12,9 @@ public class CarMapper {
 
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
+        car.setListingType(request.getListingType());
+        car.setStatus(AdStatus.ACTIVE);
+        car.setActive(true);
         car.setMake(request.getMake());
         car.setModel(request.getModel());
         car.setVinCode(request.getVinCode());
@@ -34,6 +37,7 @@ public class CarMapper {
     }
 
     public static void updateEntity(CarListing car, CarRequest request) {
+        car.setListingType(request.getListingType());
         car.setMake(request.getMake());
         car.setModel(request.getModel());
         car.setVinCode(request.getVinCode());
@@ -60,6 +64,7 @@ public class CarMapper {
                 .id(car.getId())
                 .ownerId(car.getOwner().getId())
                 .title(car.getTitle())
+                .listingType(car.getListingType())
                 .make(car.getMake())
                 .model(car.getModel())
                 .year(car.getYear())

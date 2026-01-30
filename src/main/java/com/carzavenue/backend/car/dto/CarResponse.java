@@ -12,6 +12,7 @@ public class CarResponse {
     Long id;
     Long ownerId;
     String title;
+    String listingType;
     String make;
     String model;
     Integer year;

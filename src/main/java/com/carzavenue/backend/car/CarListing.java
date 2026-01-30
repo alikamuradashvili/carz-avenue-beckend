@@ -29,6 +29,9 @@ public class CarListing {
     @Column(nullable = false)
     private String title;
 
+    @Column(name = "listing_type")
+    private String listingType;
+
     @Column(nullable = false)
     private String make;
 
@@ -61,6 +64,11 @@ public class CarListing {
     private boolean isActive = true;
     private boolean isVip = false;
     private Instant vipExpiresAt;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AdStatus status = AdStatus.ACTIVE;
 
     @CreationTimestamp
     private Instant createdAt;

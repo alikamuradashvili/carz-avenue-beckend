@@ -183,6 +183,7 @@ public class CarService {
             throw new SecurityException("Not allowed");
         }
         car.setActive(false);
+        car.setStatus(AdStatus.INACTIVE);
         carRepository.save(car);
     }
 

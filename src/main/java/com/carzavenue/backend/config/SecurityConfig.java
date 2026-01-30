@@ -43,6 +43,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/auth/me").authenticated()
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "ADMINISTRATOR")
                         .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
                         // Also allow legacy /carsall=true endpoint used by some clients
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**", "/carsall=true").permitAll()
