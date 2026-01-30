@@ -3,6 +3,9 @@ package com.carzavenue.backend.admin;
 import com.carzavenue.backend.admin.dto.AdminListingRequest;
 import com.carzavenue.backend.admin.dto.AdminListingResponse;
 import com.carzavenue.backend.admin.dto.AdminListingStatusRequest;
+import com.carzavenue.backend.admin.dto.AdminCarMultipartRequest;
+import com.carzavenue.backend.admin.dto.AdminListingFiltersResponse;
+import com.carzavenue.backend.admin.dto.AdminUserOption;
 import com.carzavenue.backend.admin.dto.AdminUserResponse;
 import com.carzavenue.backend.admin.dto.AdminUserRoleRequest;
 import com.carzavenue.backend.admin.dto.AdminUserStatusRequest;
@@ -10,6 +13,7 @@ import com.carzavenue.backend.car.AdStatus;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.common.ApiResponse;
+import org.springframework.http.MediaType;
 import com.carzavenue.backend.security.SecurityUser;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +45,11 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getUser(id)));
     }
 
+    @GetMapping("/users/options")
+    public ResponseEntity<ApiResponse<List<AdminUserOption>>> userOptions() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.userOptions()));
+    }
+
     @PatchMapping("/users/{id}/role")
     public ResponseEntity<ApiResponse<AdminUserResponse>> updateRole(@PathVariable Long id,
                                                                      @Validated @RequestBody AdminUserRoleRequest request,
@@ -61,8 +70,33 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Page<AdminListingResponse>>> ads(@RequestParam(defaultValue = "0") int page,
                                                                        @RequestParam(defaultValue = "20") int size,
                                                                        @RequestParam(required = false) AdStatus status,
-                                                                       @RequestParam(required = false) String q) {
-        return ResponseEntity.ok(ApiResponse.ok(adminService.listAds(page, size, status, q)));
+                                                                       @RequestParam(required = false) String q,
+                                                                       @RequestParam(required = false) String listingType,
+                                                                       @RequestParam(required = false) String make,
+                                                                       @RequestParam(required = false) String model,
+                                                                       @RequestParam(required = false) String ownerEmail,
+                                                                       @RequestParam(required = false) String ownerName,
+                                                                       @RequestParam(required = false) String fuelType,
+                                                                       @RequestParam(required = false) String transmission,
+                                                                       @RequestParam(required = false) String bodyType,
+                                                                       @RequestParam(required = false) String color,
+                                                                       @RequestParam(required = false) Double engineVolume,
+                                                                       @RequestParam(required = false) Integer mileage,
+                                                                       @RequestParam(required = false) String vinCode,
+                                                                       @RequestParam(required = false) Integer yearMin,
+                                                                       @RequestParam(required = false) Integer yearMax,
+                                                                       @RequestParam(required = false) Double priceMin,
+                                                                       @RequestParam(required = false) Double priceMax,
+                                                                       @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                adminService.listAds(page, size, status, q, listingType, make, model, ownerEmail, ownerName,
+                        fuelType, transmission, bodyType, color, engineVolume, mileage, vinCode,
+                        yearMin, yearMax, priceMin, priceMax, active)));
+    }
+
+    @GetMapping("/ads/filters")
+    public ResponseEntity<ApiResponse<AdminListingFiltersResponse>> listingFilters() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.listingFilters()));
     }
 
     @GetMapping("/ads/{id}")
@@ -73,6 +107,32 @@ public class AdminController {
     @PostMapping("/ads")
     public ResponseEntity<ApiResponse<CarResponse>> createAd(@Validated @RequestBody AdminListingRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(adminService.createAd(request)));
+    }
+
+    @PostMapping(value = "/ads/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CarResponse>> createAdMultipart(@Validated @ModelAttribute AdminCarMultipartRequest request,
+                                                                      @RequestPart(value = "images", required = false)
+                                                                      org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
+        CarRequest mappedRequest = new CarRequest();
+        mappedRequest.setTitle(request.getTitle());
+        mappedRequest.setMake(request.getMake());
+        mappedRequest.setModel(request.getModel());
+        mappedRequest.setYear(request.getYear());
+        mappedRequest.setMileage(request.getMileage());
+        mappedRequest.setFuelType(request.getFuelType());
+        mappedRequest.setTransmission(request.getTransmission());
+        mappedRequest.setBodyType(request.getBodyType());
+        mappedRequest.setEngineVolume(request.getEngineVolume());
+        mappedRequest.setPrice(request.getPrice());
+        mappedRequest.setListingType(request.getListingType());
+        mappedRequest.setColor(request.getColor());
+        mappedRequest.setDescription(request.getDescription());
+        mappedRequest.setLocation(request.getLocation());
+        mappedRequest.setImageId(request.getImageId());
+        mappedRequest.setVinCode(request.getVinCode());
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                adminService.createAdWithImages(request.getOwnerId(), mappedRequest, images)));
     }
 
     @PutMapping("/ads/{id}")

@@ -29,6 +29,9 @@ public class CarListing {
     @Column(nullable = false)
     private String title;
 
+    @Column(name = "listing_type")
+    private String listingType;
+
     @Column(nullable = false)
     private String make;
 
