@@ -1,6 +1,7 @@
 package com.carzavenue.backend.user;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -31,7 +32,7 @@ public class User {
     private String phoneNumber;
 
     @Builder.Default
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = RoleAttributeConverter.class)
     @Column(nullable = false)
     private Role role = Role.USER;
 
