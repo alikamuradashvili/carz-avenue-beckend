@@ -13,9 +13,10 @@ import com.carzavenue.backend.car.AdStatus;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.common.ApiResponse;
+import com.carzavenue.backend.common.PageResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import com.carzavenue.backend.security.SecurityUser;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -67,31 +68,26 @@ public class AdminController {
     }
 
     @GetMapping("/ads")
-    public ResponseEntity<ApiResponse<Page<AdminListingResponse>>> ads(@RequestParam(defaultValue = "0") int page,
-                                                                       @RequestParam(defaultValue = "20") int size,
-                                                                       @RequestParam(required = false) AdStatus status,
-                                                                       @RequestParam(required = false) String q,
-                                                                       @RequestParam(required = false) String listingType,
-                                                                       @RequestParam(required = false) String make,
-                                                                       @RequestParam(required = false) String model,
-                                                                       @RequestParam(required = false) String ownerEmail,
-                                                                       @RequestParam(required = false) String ownerName,
-                                                                       @RequestParam(required = false) String fuelType,
-                                                                       @RequestParam(required = false) String transmission,
-                                                                       @RequestParam(required = false) String bodyType,
-                                                                       @RequestParam(required = false) String color,
-                                                                       @RequestParam(required = false) Double engineVolume,
-                                                                       @RequestParam(required = false) Integer mileage,
-                                                                       @RequestParam(required = false) String vinCode,
-                                                                       @RequestParam(required = false) Integer yearMin,
-                                                                       @RequestParam(required = false) Integer yearMax,
-                                                                       @RequestParam(required = false) Double priceMin,
-                                                                       @RequestParam(required = false) Double priceMax,
-                                                                       @RequestParam(required = false) Boolean active) {
+    public ResponseEntity<ApiResponse<PageResponse<AdminListingResponse>>> ads(@RequestParam(defaultValue = "0") int page,
+                                                                               @RequestParam(defaultValue = "20") int size,
+                                                                               @RequestParam(required = false) String sort,
+                                                                               @RequestParam(required = false) AdStatus status,
+                                                                               @RequestParam(required = false) String q,
+                                                                               @RequestParam(required = false) String makeId,
+                                                                               @RequestParam(required = false) String modelId,
+                                                                               @RequestParam(required = false) String locationId,
+                                                                               @RequestParam(required = false) Double priceMin,
+                                                                               @RequestParam(required = false) Double priceMax,
+                                                                               @RequestParam(required = false)
+                                                                               @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+                                                                               java.time.LocalDateTime createdFrom,
+                                                                               @RequestParam(required = false)
+                                                                               @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+                                                                               java.time.LocalDateTime createdTo,
+                                                                               @RequestParam(required = false) Long sellerId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                adminService.listAds(page, size, status, q, listingType, make, model, ownerEmail, ownerName,
-                        fuelType, transmission, bodyType, color, engineVolume, mileage, vinCode,
-                        yearMin, yearMax, priceMin, priceMax, active)));
+                adminService.listAds(page, size, sort, status, q, makeId, modelId, locationId,
+                        priceMin, priceMax, createdFrom, createdTo, sellerId)));
     }
 
     @GetMapping("/ads/filters")

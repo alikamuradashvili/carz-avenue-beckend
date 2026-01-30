@@ -5,6 +5,7 @@ import com.carzavenue.backend.admin.dto.AdminListingResponse;
 import com.carzavenue.backend.admin.dto.AdminUserResponse;
 import com.carzavenue.backend.admin.dto.AdminListingFiltersResponse;
 import com.carzavenue.backend.admin.dto.AdminUserOption;
+import com.carzavenue.backend.common.PageResponse;
 import com.carzavenue.backend.car.AdStatus;
 import com.carzavenue.backend.car.CarListing;
 import com.carzavenue.backend.car.CarListingRepository;
@@ -108,32 +109,27 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AdminListingResponse> listAds(int page,
-                                              int size,
-                                              AdStatus status,
-                                              String q,
-                                              String listingType,
-                                              String make,
-                                              String model,
-                                              String ownerEmail,
-                                              String ownerName,
-                                              String fuelType,
-                                              String transmission,
-                                              String bodyType,
-                                              String color,
-                                              Double engineVolume,
-                                              Integer mileage,
-                                              String vinCode,
-                                              Integer yearMin,
-                                              Integer yearMax,
-                                              Double priceMin,
-                                              Double priceMax,
-                                              Boolean active) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Specification<CarListing> spec = buildListingSpec(status, q, listingType, make, model, ownerEmail, ownerName,
-                fuelType, transmission, bodyType, color, engineVolume, mileage, vinCode,
-                yearMin, yearMax, priceMin, priceMax, active);
-        return carListingRepository.findAll(spec, pageable).map(this::toAdminListing);
+    public PageResponse<AdminListingResponse> listAds(int page,
+                                                      int size,
+                                                      String sort,
+                                                      AdStatus status,
+                                                      String q,
+                                                      String makeId,
+                                                      String modelId,
+                                                      String locationId,
+                                                      Double priceMin,
+                                                      Double priceMax,
+                                                      java.time.LocalDateTime createdFrom,
+                                                      java.time.LocalDateTime createdTo,
+                                                      Long sellerId) {
+        Sort resolvedSort = resolveSort(sort);
+        Pageable pageable = PageRequest.of(page, size, resolvedSort);
+        java.time.ZoneId zoneId = java.time.ZoneId.systemDefault();
+        java.time.Instant createdFromInstant = createdFrom == null ? null : createdFrom.atZone(zoneId).toInstant();
+        java.time.Instant createdToInstant = createdTo == null ? null : createdTo.atZone(zoneId).toInstant();
+        Specification<CarListing> spec = buildListingSpec(status, q, makeId, modelId, locationId,
+                priceMin, priceMax, createdFromInstant, createdToInstant, sellerId);
+        return PageResponse.from(carListingRepository.findAll(spec, pageable).map(this::toAdminListing));
     }
 
     @Transactional(readOnly = true)
@@ -231,78 +227,42 @@ public class AdminService {
 
     private Specification<CarListing> buildListingSpec(AdStatus status,
                                                        String q,
-                                                       String listingType,
-                                                       String make,
-                                                       String model,
-                                                       String ownerEmail,
-                                                       String ownerName,
-                                                       String fuelType,
-                                                       String transmission,
-                                                       String bodyType,
-                                                       String color,
-                                                       Double engineVolume,
-                                                       Integer mileage,
-                                                       String vinCode,
-                                                       Integer yearMin,
-                                                       Integer yearMax,
+                                                       String makeId,
+                                                       String modelId,
+                                                       String locationId,
                                                        Double priceMin,
                                                        Double priceMax,
-                                                       Boolean active) {
+                                                       java.time.Instant createdFrom,
+                                                       java.time.Instant createdTo,
+                                                       Long sellerId) {
         return (root, query, cb) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
             }
-            if (active != null) {
-                predicates.add(cb.equal(root.get("isActive"), active));
+            if (makeId != null && !makeId.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("make")), "%" + makeId.trim().toLowerCase() + "%"));
             }
-            if (listingType != null && !listingType.isBlank()) {
-                predicates.add(cb.equal(cb.lower(root.get("listingType")), listingType.trim().toLowerCase()));
+            if (modelId != null && !modelId.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("model")), "%" + modelId.trim().toLowerCase() + "%"));
             }
-            if (make != null && !make.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("make")), "%" + make.trim().toLowerCase() + "%"));
+            if (locationId != null && !locationId.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("location")), "%" + locationId.trim().toLowerCase() + "%"));
             }
-            if (model != null && !model.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("model")), "%" + model.trim().toLowerCase() + "%"));
-            }
-            if (ownerEmail != null && !ownerEmail.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("owner").get("email")), "%" + ownerEmail.trim().toLowerCase() + "%"));
-            }
-            if (ownerName != null && !ownerName.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("owner").get("name")), "%" + ownerName.trim().toLowerCase() + "%"));
-            }
-            if (fuelType != null && !fuelType.isBlank()) {
-                predicates.add(cb.equal(cb.lower(root.get("fuelType")), fuelType.trim().toLowerCase()));
-            }
-            if (transmission != null && !transmission.isBlank()) {
-                predicates.add(cb.equal(cb.lower(root.get("transmission")), transmission.trim().toLowerCase()));
-            }
-            if (bodyType != null && !bodyType.isBlank()) {
-                predicates.add(cb.equal(cb.lower(root.get("bodyType")), bodyType.trim().toLowerCase()));
-            }
-            if (color != null && !color.isBlank()) {
-                predicates.add(cb.equal(cb.lower(root.get("color")), color.trim().toLowerCase()));
-            }
-            if (engineVolume != null) {
-                predicates.add(cb.equal(root.get("engineVolume"), engineVolume));
-            }
-            if (mileage != null) {
-                predicates.add(cb.equal(root.get("mileage"), mileage));
-            }
-            if (vinCode != null && !vinCode.isBlank()) {
-                predicates.add(cb.equal(cb.upper(root.get("vinCode")), vinCode.trim().toUpperCase()));
-            }
-            if (yearMin != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("year"), yearMin));
-            }
-            if (yearMax != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("year"), yearMax));
+            if (sellerId != null) {
+                predicates.add(cb.equal(root.get("owner").get("id"), sellerId));
             }
             if (priceMin != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("price"), priceMin));
             }
             if (priceMax != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("price"), priceMax));
+            }
+            if (createdFrom != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), createdFrom));
+            }
+            if (createdTo != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), createdTo));
             }
             if (q != null && !q.isBlank()) {
                 String like = "%" + q.trim().toLowerCase() + "%";
@@ -317,6 +277,21 @@ public class AdminService {
             }
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
+    }
+
+    private Sort resolveSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return Sort.by(Sort.Order.desc("createdAt"));
+        }
+        String[] parts = sort.split(",");
+        String field = parts[0].trim();
+        if (parts.length < 2) {
+            return Sort.by(Sort.Order.asc(field));
+        }
+        String direction = parts[1].trim();
+        return "desc".equalsIgnoreCase(direction)
+                ? Sort.by(Sort.Order.desc(field))
+                : Sort.by(Sort.Order.asc(field));
     }
 
     @Transactional(readOnly = true)
