@@ -1,5 +1,7 @@
 package com.carzavenue.backend.car.dto;
 
+import com.carzavenue.backend.car.PackageType;
+import com.carzavenue.backend.car.VehicleCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -24,6 +26,8 @@ public class CarRequest {
     private Double price;
     @NotBlank
     private String listingType;
+    private PackageType packageType;
+    private VehicleCategory category;
     private String vinCode;
     private String color;
     private String description;

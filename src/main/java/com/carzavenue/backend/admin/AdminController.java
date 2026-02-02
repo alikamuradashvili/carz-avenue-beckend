@@ -5,6 +5,8 @@ import com.carzavenue.backend.admin.dto.AdminListingResponse;
 import com.carzavenue.backend.admin.dto.AdminListingStatusRequest;
 import com.carzavenue.backend.admin.dto.AdminCarMultipartRequest;
 import com.carzavenue.backend.admin.dto.AdminListingFiltersResponse;
+import com.carzavenue.backend.admin.dto.AdminListingCategoryRequest;
+import com.carzavenue.backend.admin.dto.AdminListingPackageTypeRequest;
 import com.carzavenue.backend.admin.dto.AdminUserOption;
 import com.carzavenue.backend.admin.dto.AdminUserResponse;
 import com.carzavenue.backend.admin.dto.AdminUserRoleRequest;
@@ -122,6 +124,8 @@ public class AdminController {
         mappedRequest.setEngineVolume(request.getEngineVolume());
         mappedRequest.setPrice(request.getPrice());
         mappedRequest.setListingType(request.getListingType());
+        mappedRequest.setPackageType(request.getPackageType());
+        mappedRequest.setCategory(request.getCategory());
         mappedRequest.setColor(request.getColor());
         mappedRequest.setDescription(request.getDescription());
         mappedRequest.setLocation(request.getLocation());
@@ -148,6 +152,18 @@ public class AdminController {
     public ResponseEntity<ApiResponse<AdminListingResponse>> updateAdStatus(@PathVariable Long id,
                                                                             @Validated @RequestBody AdminListingStatusRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(adminService.updateAdStatus(id, request.getStatus())));
+    }
+
+    @PatchMapping("/ads/{id}/packageType")
+    public ResponseEntity<ApiResponse<AdminListingResponse>> updateAdPackageType(@PathVariable Long id,
+                                                                                 @Validated @RequestBody AdminListingPackageTypeRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.updateAdPackageType(id, request.getPackageType())));
+    }
+
+    @PatchMapping("/ads/{id}/category")
+    public ResponseEntity<ApiResponse<AdminListingResponse>> updateAdCategory(@PathVariable Long id,
+                                                                              @Validated @RequestBody AdminListingCategoryRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.updateAdCategory(id, request.getCategory())));
     }
 
     // Legacy endpoints

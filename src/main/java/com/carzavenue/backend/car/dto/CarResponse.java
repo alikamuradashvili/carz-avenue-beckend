@@ -1,5 +1,7 @@
 package com.carzavenue.backend.car.dto;
 
+import com.carzavenue.backend.car.PackageType;
+import com.carzavenue.backend.car.VehicleCategory;
 import lombok.Builder;
 import lombok.Value;
 
@@ -13,6 +15,8 @@ public class CarResponse {
     Long ownerId;
     String title;
     String listingType;
+    PackageType packageType;
+    VehicleCategory category;
     String make;
     String model;
     Integer year;

@@ -49,6 +49,8 @@ public class CarService {
     @Transactional(readOnly = true)
     public Page<CarResponse> list(String make,
                                   String model,
+                                  java.util.List<PackageType> packageTypes,
+                                  java.util.List<VehicleCategory> categories,
                                   Integer yearMin,
                                   Integer yearMax,
                                   Double priceMin,
@@ -67,6 +69,8 @@ public class CarService {
         Specification<CarListing> spec = Specification.where(CarSpecifications.active())
                 .and(Optional.ofNullable(make).map(CarSpecifications::make).orElse(null))
                 .and(Optional.ofNullable(model).map(CarSpecifications::model).orElse(null))
+                .and(CarSpecifications.packageTypeIn(packageTypes))
+                .and(CarSpecifications.categoryIn(categories))
                 .and(Optional.ofNullable(yearMin).map(CarSpecifications::yearMin).orElse(null))
                 .and(Optional.ofNullable(yearMax).map(CarSpecifications::yearMax).orElse(null))
                 .and(Optional.ofNullable(priceMin).map(CarSpecifications::priceMin).orElse(null))
