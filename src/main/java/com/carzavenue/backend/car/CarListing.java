@@ -68,6 +68,16 @@ public class CarListing {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private PackageType packageType = PackageType.ECONOM;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private VehicleCategory category = VehicleCategory.OTHER;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AdStatus status = AdStatus.ACTIVE;
 
     @CreationTimestamp

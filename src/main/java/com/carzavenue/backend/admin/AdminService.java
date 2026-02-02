@@ -171,6 +171,22 @@ public class AdminService {
         return toAdminListing(car);
     }
 
+    @Transactional
+    public AdminListingResponse updateAdPackageType(Long id, com.carzavenue.backend.car.PackageType packageType) {
+        CarListing car = carListingRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Listing not found"));
+        car.setPackageType(packageType);
+        carListingRepository.save(car);
+        return toAdminListing(car);
+    }
+
+    @Transactional
+    public AdminListingResponse updateAdCategory(Long id, com.carzavenue.backend.car.VehicleCategory category) {
+        CarListing car = carListingRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Listing not found"));
+        car.setCategory(category);
+        carListingRepository.save(car);
+        return toAdminListing(car);
+    }
+
     @Transactional(readOnly = true)
     public List<CarResponse> listAllListings() {
         return carListingRepository.findAll().stream()
@@ -202,6 +218,8 @@ public class AdminService {
                 .ownerEmail(car.getOwner().getEmail())
                 .title(car.getTitle())
                 .listingType(car.getListingType())
+                .packageType(car.getPackageType())
+                .category(car.getCategory())
                 .make(car.getMake())
                 .model(car.getModel())
                 .year(car.getYear())
@@ -305,6 +323,8 @@ public class AdminService {
                 .makes(carListingRepository.findDistinctMakes())
                 .models(carListingRepository.findDistinctModels())
                 .listingTypes(carListingRepository.findDistinctListingTypes())
+                .packageTypes(carListingRepository.findDistinctPackageTypes())
+                .categories(carListingRepository.findDistinctCategories())
                 .fuelTypes(carListingRepository.findDistinctFuelTypes())
                 .transmissions(carListingRepository.findDistinctTransmissions())
                 .bodyTypes(carListingRepository.findDistinctBodyTypes())

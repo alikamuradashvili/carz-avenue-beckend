@@ -67,4 +67,14 @@ public class CarSpecifications {
         return (root, query, cb) -> cb.or(cb.isNull(root.get("vipExpiresAt")),
                 cb.greaterThan(root.get("vipExpiresAt"), Instant.now()));
     }
+
+    public static Specification<CarListing> packageTypeIn(java.util.List<PackageType> packageTypes) {
+        if (packageTypes == null || packageTypes.isEmpty()) return null;
+        return (root, query, cb) -> root.get("packageType").in(packageTypes);
+    }
+
+    public static Specification<CarListing> categoryIn(java.util.List<VehicleCategory> categories) {
+        if (categories == null || categories.isEmpty()) return null;
+        return (root, query, cb) -> root.get("category").in(categories);
+    }
 }

@@ -13,6 +13,12 @@ public class CarMapper {
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
         car.setListingType(request.getListingType());
+        if (request.getPackageType() != null) {
+            car.setPackageType(request.getPackageType());
+        }
+        if (request.getCategory() != null) {
+            car.setCategory(request.getCategory());
+        }
         car.setStatus(AdStatus.ACTIVE);
         car.setActive(true);
         car.setMake(request.getMake());
@@ -38,6 +44,12 @@ public class CarMapper {
 
     public static void updateEntity(CarListing car, CarRequest request) {
         car.setListingType(request.getListingType());
+        if (request.getPackageType() != null) {
+            car.setPackageType(request.getPackageType());
+        }
+        if (request.getCategory() != null) {
+            car.setCategory(request.getCategory());
+        }
         car.setMake(request.getMake());
         car.setModel(request.getModel());
         car.setVinCode(request.getVinCode());
@@ -65,6 +77,8 @@ public class CarMapper {
                 .ownerId(car.getOwner().getId())
                 .title(car.getTitle())
                 .listingType(car.getListingType())
+                .packageType(car.getPackageType())
+                .category(car.getCategory())
                 .make(car.getMake())
                 .model(car.getModel())
                 .year(car.getYear())

@@ -36,6 +36,10 @@ public class CarController {
     public ResponseEntity<ApiResponse<Page<CarResponse>>> list(
             @RequestParam(value = "make", required = false) String make,
             @RequestParam(value = "model", required = false) String model,
+            @RequestParam(value = "packageType", required = false) java.util.List<String> packageTypes,
+            @RequestParam(value = "packageType[]", required = false) java.util.List<String> packageTypesBracket,
+            @RequestParam(value = "category", required = false) java.util.List<String> categories,
+            @RequestParam(value = "category[]", required = false) java.util.List<String> categoriesBracket,
             @RequestParam(value = "yearMin", required = false) Integer yearMin,
             @RequestParam(value = "yearMax", required = false) Integer yearMax,
             @RequestParam(value = "priceMin", required = false) Double priceMin,
@@ -56,6 +60,8 @@ public class CarController {
                 carService.list(
                         make,
                         model,
+                        parsePackageTypes(mergeListParams(packageTypes, packageTypesBracket)),
+                        parseCategories(mergeListParams(categories, categoriesBracket)),
                         yearMin,
                         yearMax,
                         priceMin,
@@ -131,6 +137,10 @@ public class CarController {
     public ResponseEntity<ApiResponse<java.util.List<CarResponse>>> listAllWithQuery(
             @RequestParam(value = "make", required = false) String make,
             @RequestParam(value = "model", required = false) String model,
+            @RequestParam(value = "packageType", required = false) java.util.List<String> packageTypes,
+            @RequestParam(value = "packageType[]", required = false) java.util.List<String> packageTypesBracket,
+            @RequestParam(value = "category", required = false) java.util.List<String> categories,
+            @RequestParam(value = "category[]", required = false) java.util.List<String> categoriesBracket,
             @RequestParam(value = "yearMin", required = false) Integer yearMin,
             @RequestParam(value = "yearMax", required = false) Integer yearMax,
             @RequestParam(value = "priceMin", required = false) Double priceMin,
@@ -149,6 +159,8 @@ public class CarController {
                 carService.list(
                         make,
                         model,
+                        parsePackageTypes(mergeListParams(packageTypes, packageTypesBracket)),
+                        parseCategories(mergeListParams(categories, categoriesBracket)),
                         yearMin,
                         yearMax,
                         priceMin,
@@ -171,6 +183,48 @@ public class CarController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CarResponse>> get(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(carService.get(id)));
+    }
+
+    private java.util.List<PackageType> parsePackageTypes(java.util.List<String> raw) {
+        return parseEnumList(raw, PackageType.class);
+    }
+
+    private java.util.List<VehicleCategory> parseCategories(java.util.List<String> raw) {
+        return parseEnumList(raw, VehicleCategory.class);
+    }
+
+    private java.util.List<String> mergeListParams(java.util.List<String> primary, java.util.List<String> bracketed) {
+        if ((primary == null || primary.isEmpty()) && (bracketed == null || bracketed.isEmpty())) {
+            return java.util.List.of();
+        }
+        java.util.List<String> merged = new java.util.ArrayList<>();
+        if (primary != null) {
+            merged.addAll(primary);
+        }
+        if (bracketed != null) {
+            merged.addAll(bracketed);
+        }
+        return merged;
+    }
+
+    private <T extends Enum<T>> java.util.List<T> parseEnumList(java.util.List<String> raw, Class<T> enumType) {
+        if (raw == null || raw.isEmpty()) {
+            return java.util.List.of();
+        }
+        java.util.List<T> values = new java.util.ArrayList<>();
+        for (String item : raw) {
+            if (item == null || item.isBlank()) {
+                continue;
+            }
+            String[] parts = item.split(",");
+            for (String part : parts) {
+                if (part == null || part.isBlank()) {
+                    continue;
+                }
+                values.add(Enum.valueOf(enumType, part.trim().toUpperCase()));
+            }
+        }
+        return values;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -262,6 +316,8 @@ public class CarController {
         mappedRequest.setEngineVolume(request.getEngineVolume());
         mappedRequest.setPrice(request.getPrice());
         mappedRequest.setListingType(request.getListingType());
+        mappedRequest.setPackageType(request.getPackageType());
+        mappedRequest.setCategory(request.getCategory());
         mappedRequest.setColor(request.getColor());
         mappedRequest.setDescription(request.getDescription());
         mappedRequest.setLocation(request.getLocation());
