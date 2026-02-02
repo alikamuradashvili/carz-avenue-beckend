@@ -84,10 +84,11 @@ public class AdminController {
                                                                                @RequestParam(required = false)
                                                                                @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
                                                                                java.time.LocalDateTime createdTo,
-                                                                               @RequestParam(required = false) Long sellerId) {
+                                                                               @RequestParam(required = false) Long sellerId,
+                                                                               @RequestParam(required = false) String sellerEmail) {
         return ResponseEntity.ok(ApiResponse.ok(
                 adminService.listAds(page, size, sort, status, q, makeId, modelId, locationId,
-                        priceMin, priceMax, createdFrom, createdTo, sellerId)));
+                        priceMin, priceMax, createdFrom, createdTo, sellerId, sellerEmail)));
     }
 
     @GetMapping("/ads/filters")
