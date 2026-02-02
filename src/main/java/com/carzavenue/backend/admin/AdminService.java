@@ -121,14 +121,15 @@ public class AdminService {
                                                       Double priceMax,
                                                       java.time.LocalDateTime createdFrom,
                                                       java.time.LocalDateTime createdTo,
-                                                      Long sellerId) {
+                                                      Long sellerId,
+                                                      String sellerEmail) {
         Sort resolvedSort = resolveSort(sort);
         Pageable pageable = PageRequest.of(page, size, resolvedSort);
         java.time.ZoneId zoneId = java.time.ZoneId.systemDefault();
         java.time.Instant createdFromInstant = createdFrom == null ? null : createdFrom.atZone(zoneId).toInstant();
         java.time.Instant createdToInstant = createdTo == null ? null : createdTo.atZone(zoneId).toInstant();
         Specification<CarListing> spec = buildListingSpec(status, q, makeId, modelId, locationId,
-                priceMin, priceMax, createdFromInstant, createdToInstant, sellerId);
+                priceMin, priceMax, createdFromInstant, createdToInstant, sellerId, sellerEmail);
         return PageResponse.from(carListingRepository.findAll(spec, pageable).map(this::toAdminListing));
     }
 
@@ -234,7 +235,8 @@ public class AdminService {
                                                        Double priceMax,
                                                        java.time.Instant createdFrom,
                                                        java.time.Instant createdTo,
-                                                       Long sellerId) {
+                                                       Long sellerId,
+                                                       String sellerEmail) {
         return (root, query, cb) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
             if (status != null) {
@@ -251,6 +253,9 @@ public class AdminService {
             }
             if (sellerId != null) {
                 predicates.add(cb.equal(root.get("owner").get("id"), sellerId));
+            }
+            if (sellerEmail != null && !sellerEmail.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("owner").get("email")), "%" + sellerEmail.trim().toLowerCase() + "%"));
             }
             if (priceMin != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("price"), priceMin));
