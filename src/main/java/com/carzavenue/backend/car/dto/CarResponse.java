@@ -26,6 +26,10 @@ public class CarResponse {
     String bodyType;
     Double engineVolume;
     Double price;
+    String contactPhone;
+    String sellerName;
+    String sellerUsername;
+    String sellerPhone;
     String color;
     String description;
     String location;

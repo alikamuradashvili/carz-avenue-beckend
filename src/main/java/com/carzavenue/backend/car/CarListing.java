@@ -38,6 +38,9 @@ public class CarListing {
     @Column(nullable = false)
     private String model;
 
+    @Column(name = "contact_phone", length = 32)
+    private String contactPhone;
+
     @Column(name = "vin_code", length = 17)
     private String vinCode;
 

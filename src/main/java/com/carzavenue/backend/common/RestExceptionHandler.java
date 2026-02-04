@@ -57,7 +57,11 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        String message = "Invalid request";
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("duplicate top up")) {
+            message = "Duplicate top up";
+        }
+        return ResponseEntity.badRequest().body(ApiResponse.error(message));
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
