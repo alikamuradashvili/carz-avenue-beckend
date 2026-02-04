@@ -318,6 +318,7 @@ public class CarController {
         mappedRequest.setListingType(request.getListingType());
         mappedRequest.setPackageType(request.getPackageType());
         mappedRequest.setCategory(request.getCategory());
+        mappedRequest.setContactPhone(request.getContactPhone());
         mappedRequest.setColor(request.getColor());
         mappedRequest.setDescription(request.getDescription());
         mappedRequest.setLocation(request.getLocation());

@@ -23,6 +23,7 @@ public class CarMapper {
         car.setActive(true);
         car.setMake(request.getMake());
         car.setModel(request.getModel());
+        car.setContactPhone(request.getContactPhone());
         car.setVinCode(request.getVinCode());
         car.setYear(request.getYear());
         car.setMileage(request.getMileage());
@@ -52,6 +53,7 @@ public class CarMapper {
         }
         car.setMake(request.getMake());
         car.setModel(request.getModel());
+        car.setContactPhone(request.getContactPhone());
         car.setVinCode(request.getVinCode());
         car.setYear(request.getYear());
         car.setMileage(request.getMileage());
@@ -72,6 +74,20 @@ public class CarMapper {
 
     public static CarResponse toResponse(CarListing car) {
         List<String> photos = sanitizePhotos(car.getPhotos());
+        String sellerName = car.getOwner() != null ? car.getOwner().getName() : null;
+        String sellerUsername = null;
+        if (car.getOwner() != null && car.getOwner().getEmail() != null) {
+            String email = car.getOwner().getEmail();
+            int at = email.indexOf("@");
+            sellerUsername = at > 0 ? email.substring(0, at) : email;
+        }
+        if (sellerName == null || sellerName.isBlank()) {
+            sellerName = sellerUsername;
+        }
+        String sellerPhone = car.getContactPhone();
+        if ((sellerPhone == null || sellerPhone.isBlank()) && car.getOwner() != null) {
+            sellerPhone = car.getOwner().getPhoneNumber();
+        }
         return CarResponse.builder()
                 .id(car.getId())
                 .ownerId(car.getOwner().getId())
@@ -88,6 +104,10 @@ public class CarMapper {
                 .bodyType(car.getBodyType())
                 .engineVolume(car.getEngineVolume())
                 .price(car.getPrice())
+                .contactPhone(car.getContactPhone())
+                .sellerName(sellerName)
+                .sellerUsername(sellerUsername)
+                .sellerPhone(sellerPhone)
                 .color(car.getColor())
                 .description(car.getDescription())
                 .location(car.getLocation())

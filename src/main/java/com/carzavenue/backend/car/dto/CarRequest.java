@@ -28,6 +28,7 @@ public class CarRequest {
     private String listingType;
     private PackageType packageType;
     private VehicleCategory category;
+    private String contactPhone;
     private String vinCode;
     private String color;
     private String description;

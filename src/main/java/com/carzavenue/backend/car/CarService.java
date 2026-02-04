@@ -128,6 +128,9 @@ public class CarService {
     public CarResponse create(Long ownerId, CarRequest request) {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
         request.setVinCode(normalizeVinCode(resolveVinCode(request)));
+        if (request.getContactPhone() == null || request.getContactPhone().trim().isEmpty()) {
+            request.setContactPhone(owner.getPhoneNumber());
+        }
         ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setTitle(buildTitle(request));
@@ -141,6 +144,9 @@ public class CarService {
                                         org.springframework.web.multipart.MultipartFile[] images) throws java.io.IOException {
         User owner = userRepository.findById(ownerId).orElseThrow(() -> new EntityNotFoundException("User not found"));
         request.setVinCode(normalizeVinCode(resolveVinCode(request)));
+        if (request.getContactPhone() == null || request.getContactPhone().trim().isEmpty()) {
+            request.setContactPhone(owner.getPhoneNumber());
+        }
         ensureManufacturerModelExists(request.getMake(), request.getModel());
         CarListing car = CarMapper.fromRequest(request);
         car.setTitle(buildTitle(request));
