@@ -60,6 +60,8 @@ public class RestExceptionHandler {
         String message = "Invalid request";
         if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("duplicate top up")) {
             message = "Duplicate top up";
+        } else if (ex.getMessage() != null && !ex.getMessage().isBlank()) {
+            message = ex.getMessage();
         }
         return ResponseEntity.badRequest().body(ApiResponse.error(message));
     }
