@@ -34,6 +34,10 @@ public class Application {
         applyIfMissing("RESET_PASSWORD_FRONTEND_URL", dotenv);
         applyIfMissing("RESET_PASSWORD_FROM_EMAIL", dotenv);
         applyIfMissing("RESET_PASSWORD_EXPIRATION_MINUTES", dotenv);
+        applyIfMissing("INVOO_API_KEY", dotenv);
+        applyIfMissing("INVOO_BASE_URL", dotenv);
+        applyIfMissing("INVOO_SUCCESS_URL", dotenv);
+        applyIfMissing("INVOO_CANCEL_URL", dotenv);
     }
 
     private static boolean isLocalProfileActive() {
