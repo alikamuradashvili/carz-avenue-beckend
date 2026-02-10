@@ -11,6 +11,11 @@ import com.carzavenue.backend.admin.dto.AdminUserOption;
 import com.carzavenue.backend.admin.dto.AdminUserResponse;
 import com.carzavenue.backend.admin.dto.AdminUserRoleRequest;
 import com.carzavenue.backend.admin.dto.AdminUserStatusRequest;
+import com.carzavenue.backend.admin.dto.AdminUserAccountResponse;
+import com.carzavenue.backend.admin.dto.AdminResetPasswordResponse;
+import com.carzavenue.backend.admin.dto.AdminPaymentConfigRequest;
+import com.carzavenue.backend.admin.dto.AdminPaymentConfigResponse;
+import com.carzavenue.backend.admin.dto.AdminSetPasswordRequest;
 import com.carzavenue.backend.car.AdStatus;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
@@ -23,8 +28,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.carzavenue.backend.payment.LedgerType;
+import com.carzavenue.backend.payment.dto.LedgerEntryResponse;
 
 import java.util.List;
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/admin")
@@ -46,6 +54,59 @@ public class AdminController {
     @GetMapping("/users/{id}")
     public ResponseEntity<ApiResponse<AdminUserResponse>> user(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getUser(id)));
+    }
+
+    @GetMapping("/users/{id}/accounts")
+    public ResponseEntity<ApiResponse<List<AdminUserAccountResponse>>> userAccounts(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getUserAccounts(id)));
+    }
+
+    @GetMapping("/users/{id}/ledger")
+    public ResponseEntity<ApiResponse<PageResponse<LedgerEntryResponse>>> userLedger(
+            @PathVariable Long id,
+            @RequestParam(value = "currency", required = false) String currency,
+            @RequestParam(value = "type", required = false) LedgerType type,
+            @RequestParam(value = "from", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            Instant from,
+            @RequestParam(value = "to", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            Instant to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("createdAt").descending());
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getUserLedger(id, currency, type, from, to, pageable)));
+    }
+
+    @PostMapping("/users/{id}/reset-password")
+    public ResponseEntity<ApiResponse<AdminResetPasswordResponse>> resetPassword(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal SecurityUser principal) {
+        var actorRole = principal == null ? null : principal.getUser().getRole();
+        return ResponseEntity.ok(ApiResponse.ok(adminService.resetPassword(id, actorRole)));
+    }
+
+    @PutMapping("/users/{id}/password")
+    public ResponseEntity<ApiResponse<Void>> setPassword(
+            @PathVariable Long id,
+            @Validated @RequestBody AdminSetPasswordRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal SecurityUser principal) {
+        var actorRole = principal == null ? null : principal.getUser().getRole();
+        adminService.setPassword(id, request.getNewPassword(), actorRole);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @GetMapping("/payment-config")
+    public ResponseEntity<ApiResponse<AdminPaymentConfigResponse>> paymentConfig() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getPaymentConfig()));
+    }
+
+    @PutMapping("/payment-config")
+    public ResponseEntity<ApiResponse<AdminPaymentConfigResponse>> updatePaymentConfig(
+            @Validated @RequestBody AdminPaymentConfigRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal SecurityUser principal) {
+        var actorRole = principal == null ? null : principal.getUser().getRole();
+        return ResponseEntity.ok(ApiResponse.ok(adminService.updatePaymentConfig(request, actorRole)));
     }
 
     @GetMapping("/users/options")

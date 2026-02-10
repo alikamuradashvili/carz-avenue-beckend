@@ -3,6 +3,10 @@ package com.carzavenue.backend.admin;
 import com.carzavenue.backend.admin.dto.AdminListingRequest;
 import com.carzavenue.backend.admin.dto.AdminListingResponse;
 import com.carzavenue.backend.admin.dto.AdminUserResponse;
+import com.carzavenue.backend.admin.dto.AdminUserAccountResponse;
+import com.carzavenue.backend.admin.dto.AdminResetPasswordResponse;
+import com.carzavenue.backend.admin.dto.AdminPaymentConfigRequest;
+import com.carzavenue.backend.admin.dto.AdminPaymentConfigResponse;
 import com.carzavenue.backend.admin.dto.AdminListingFiltersResponse;
 import com.carzavenue.backend.admin.dto.AdminUserOption;
 import com.carzavenue.backend.common.PageResponse;
@@ -16,6 +20,14 @@ import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.user.Role;
 import com.carzavenue.backend.user.User;
 import com.carzavenue.backend.user.UserRepository;
+import com.carzavenue.backend.payment.AccountRepository;
+import com.carzavenue.backend.payment.Account;
+import com.carzavenue.backend.payment.LedgerEntryRepository;
+import com.carzavenue.backend.payment.LedgerEntry;
+import com.carzavenue.backend.payment.LedgerType;
+import com.carzavenue.backend.payment.dto.LedgerEntryResponse;
+import com.carzavenue.backend.payment.PaymentConfigService;
+import com.carzavenue.backend.payment.PaymentConfig;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,21 +36,36 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.security.SecureRandom;
 import java.util.List;
+import java.time.Instant;
 
 @Service
 public class AdminService {
     private final CarListingRepository carListingRepository;
     private final UserRepository userRepository;
     private final CarService carService;
+    private final AccountRepository accountRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final PaymentConfigService paymentConfigService;
 
     public AdminService(CarListingRepository carListingRepository,
                         UserRepository userRepository,
-                        CarService carService) {
+                        CarService carService,
+                        AccountRepository accountRepository,
+                        LedgerEntryRepository ledgerEntryRepository,
+                        PasswordEncoder passwordEncoder,
+                        PaymentConfigService paymentConfigService) {
         this.carListingRepository = carListingRepository;
         this.userRepository = userRepository;
         this.carService = carService;
+        this.accountRepository = accountRepository;
+        this.ledgerEntryRepository = ledgerEntryRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.paymentConfigService = paymentConfigService;
     }
 
     @Transactional(readOnly = true)
@@ -58,6 +85,90 @@ public class AdminService {
     public AdminUserResponse getUser(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
         return toAdminUser(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminUserAccountResponse> getUserAccounts(Long id) {
+        userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return accountRepository.findByUserId(id).stream()
+                .map(this::toAdminAccount)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<LedgerEntryResponse> getUserLedger(Long id,
+                                                           String currency,
+                                                           LedgerType type,
+                                                           Instant from,
+                                                           Instant to,
+                                                           Pageable pageable) {
+        userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        List<Account> accounts;
+        if (currency != null && !currency.isBlank()) {
+            accounts = accountRepository.findByUserId(id).stream()
+                    .filter(account -> currency.trim().equalsIgnoreCase(account.getCurrency()))
+                    .toList();
+        } else {
+            accounts = accountRepository.findByUserId(id);
+        }
+        if (accounts.isEmpty()) {
+            return PageResponse.from(Page.empty(pageable));
+        }
+        List<Long> accountIds = accounts.stream().map(Account::getId).toList();
+        Page<LedgerEntry> page;
+        boolean hasType = type != null;
+        boolean hasRange = from != null && to != null;
+        if (hasType && hasRange) {
+            page = ledgerEntryRepository.findByAccountIdInAndTypeAndCreatedAtBetween(accountIds, type, from, to, pageable);
+        } else if (hasType) {
+            page = ledgerEntryRepository.findByAccountIdInAndType(accountIds, type, pageable);
+        } else if (hasRange) {
+            page = ledgerEntryRepository.findByAccountIdInAndCreatedAtBetween(accountIds, from, to, pageable);
+        } else {
+            page = ledgerEntryRepository.findByAccountIdIn(accountIds, pageable);
+        }
+        return PageResponse.from(page.map(this::toLedgerResponse));
+    }
+
+    @Transactional
+    public AdminResetPasswordResponse resetPassword(Long id, Role actorRole) {
+        requireAdministratorOrAdmin(actorRole);
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        String tempPassword = generateTempPassword();
+        user.setPasswordHash(passwordEncoder.encode(tempPassword));
+        userRepository.save(user);
+        return AdminResetPasswordResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .tempPassword(tempPassword)
+                .build();
+    }
+
+    @Transactional
+    public void setPassword(Long id, String newPassword, Role actorRole) {
+        requireAdministratorOrAdmin(actorRole);
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminPaymentConfigResponse getPaymentConfig() {
+        PaymentConfig config = paymentConfigService.getOrCreate();
+        return toPaymentConfigResponse(config);
+    }
+
+    @Transactional
+    public AdminPaymentConfigResponse updatePaymentConfig(AdminPaymentConfigRequest request, Role actorRole) {
+        requireAdministrator(actorRole);
+        PaymentConfig incoming = PaymentConfig.builder()
+                .apiUrl(request.getApiUrl())
+                .testKey(request.getTestKey())
+                .liveKey(request.getLiveKey())
+                .mode(request.getMode())
+                .build();
+        PaymentConfig updated = paymentConfigService.update(incoming);
+        return toPaymentConfigResponse(updated);
     }
 
     @Transactional
@@ -204,11 +315,61 @@ public class AdminService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .provider(user.getProvider())
                 .role(user.getRole())
                 .blocked(user.isBlocked())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+
+    private AdminUserAccountResponse toAdminAccount(Account account) {
+        return AdminUserAccountResponse.builder()
+                .id(account.getId())
+                .currency(account.getCurrency())
+                .status(account.getStatus())
+                .availableBalance(account.getAvailableBalance())
+                .holdBalance(account.getHoldBalance())
+                .createdAt(account.getCreatedAt())
+                .updatedAt(account.getUpdatedAt())
+                .build();
+    }
+
+    private LedgerEntryResponse toLedgerResponse(LedgerEntry entry) {
+        return LedgerEntryResponse.builder()
+                .id(entry.getId())
+                .accountId(entry.getAccount() != null ? entry.getAccount().getId() : null)
+                .direction(entry.getDirection())
+                .amount(entry.getAmount())
+                .type(entry.getType())
+                .referenceType(entry.getReferenceType())
+                .referenceId(entry.getReferenceId())
+                .status(entry.getStatus())
+                .idempotencyKey(entry.getIdempotencyKey())
+                .createdAt(entry.getCreatedAt())
+                .build();
+    }
+
+    private AdminPaymentConfigResponse toPaymentConfigResponse(PaymentConfig config) {
+        return AdminPaymentConfigResponse.builder()
+                .id(config.getId())
+                .apiUrl(config.getApiUrl())
+                .testKey(config.getTestKey())
+                .liveKey(config.getLiveKey())
+                .mode(config.getMode())
+                .updatedAt(config.getUpdatedAt())
+                .build();
+    }
+
+    private String generateTempPassword() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     private AdminListingResponse toAdminListing(CarListing car) {
