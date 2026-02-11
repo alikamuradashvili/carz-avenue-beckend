@@ -4,6 +4,7 @@ import com.carzavenue.backend.car.dto.CarMultipartRequest;
 import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.common.ApiResponse;
+import com.carzavenue.backend.common.PageResponse;
 import com.carzavenue.backend.security.SecurityUser;
 import com.carzavenue.backend.user.Role;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +29,11 @@ import java.util.Optional;
 @RequestMapping("/cars")
 public class CarController {
     private final CarService carService;
+    private final CarSocialService carSocialService;
 
-    public CarController(CarService carService) {
+    public CarController(CarService carService, CarSocialService carSocialService) {
         this.carService = carService;
+        this.carSocialService = carSocialService;
     }
 
     @GetMapping
@@ -84,6 +88,20 @@ public class CarController {
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<java.util.List<CarResponse>>> listAll() {
         return ResponseEntity.ok(ApiResponse.ok(carService.listAll()));
+    }
+
+    @GetMapping("/liked")
+    public ResponseEntity<ApiResponse<PageResponse<CarResponse>>> likedCars(
+            @AuthenticationPrincipal SecurityUser principal,
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "20") int size) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Unauthorized"));
+        }
+        var response = PageResponse.from(
+                carSocialService.likedCars(principal.getUser().getId(), PageRequest.of(page, size))
+        );
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/manufacturers")
