@@ -78,6 +78,23 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getUserLedger(id, currency, type, from, to, pageable)));
     }
 
+    @GetMapping("/ledger")
+    public ResponseEntity<ApiResponse<PageResponse<LedgerEntryResponse>>> ledger(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "currency", required = false) String currency,
+            @RequestParam(value = "type", required = false) LedgerType type,
+            @RequestParam(value = "from", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            Instant from,
+            @RequestParam(value = "to", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            Instant to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("createdAt").descending());
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getLedger(userId, currency, type, from, to, pageable)));
+    }
+
     @PostMapping("/users/{id}/reset-password")
     public ResponseEntity<ApiResponse<AdminResetPasswordResponse>> resetPassword(
             @PathVariable Long id,

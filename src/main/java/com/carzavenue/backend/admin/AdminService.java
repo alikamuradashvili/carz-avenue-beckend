@@ -130,6 +130,26 @@ public class AdminService {
         return PageResponse.from(page.map(this::toLedgerResponse));
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<LedgerEntryResponse> getLedger(Long userId,
+                                                       String currency,
+                                                       LedgerType type,
+                                                       Instant from,
+                                                       Instant to,
+                                                       Pageable pageable) {
+        Page<LedgerEntry> page;
+        if (from == null && to == null) {
+            page = ledgerEntryRepository.findAdminLedgerNoRange(userId, currency, type, pageable);
+        } else if (from != null && to == null) {
+            page = ledgerEntryRepository.findAdminLedgerFrom(userId, currency, type, from, pageable);
+        } else if (from == null) {
+            page = ledgerEntryRepository.findAdminLedgerTo(userId, currency, type, to, pageable);
+        } else {
+            page = ledgerEntryRepository.findAdminLedger(userId, currency, type, from, to, pageable);
+        }
+        return PageResponse.from(page.map(this::toLedgerResponse));
+    }
+
     @Transactional
     public AdminResetPasswordResponse resetPassword(Long id, Role actorRole) {
         requireAdministratorOrAdmin(actorRole);
@@ -337,9 +357,40 @@ public class AdminService {
     }
 
     private LedgerEntryResponse toLedgerResponse(LedgerEntry entry) {
+        User owner = null;
+        Account account = entry.getAccount();
+        if (account != null) {
+            owner = account.getUser();
+            if (owner == null && account.getId() != null) {
+                owner = accountRepository.findById(account.getId())
+                        .map(Account::getUser)
+                        .orElse(null);
+            }
+        }
+        if (owner == null && entry.getReferenceId() != null) {
+            String ref = entry.getReferenceId().trim();
+            try {
+                Long refUserId = Long.parseLong(ref);
+                owner = userRepository.findById(refUserId).orElse(null);
+            } catch (NumberFormatException ignored) {
+                if ("seed".equalsIgnoreCase(entry.getReferenceType()) && "local-admin".equalsIgnoreCase(ref)) {
+                    owner = userRepository.findByEmail("admin@local.test").orElse(null);
+                }
+            }
+        }
+        String username = null;
+        if (owner != null && owner.getEmail() != null) {
+            String email = owner.getEmail();
+            int idx = email.indexOf('@');
+            username = idx > 0 ? email.substring(0, idx) : email;
+        }
         return LedgerEntryResponse.builder()
                 .id(entry.getId())
                 .accountId(entry.getAccount() != null ? entry.getAccount().getId() : null)
+                .userId(owner != null ? owner.getId() : null)
+                .userName(owner != null ? owner.getName() : null)
+                .userEmail(owner != null ? owner.getEmail() : null)
+                .userUsername(username)
                 .direction(entry.getDirection())
                 .amount(entry.getAmount())
                 .type(entry.getType())
