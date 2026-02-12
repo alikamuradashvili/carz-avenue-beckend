@@ -186,6 +186,9 @@ public class AdminService {
                 .testKey(request.getTestKey())
                 .liveKey(request.getLiveKey())
                 .mode(request.getMode())
+                .successUrl(request.getSuccessUrl())
+                .cancelUrl(request.getCancelUrl())
+                .checkoutUrlTemplate(request.getCheckoutUrlTemplate())
                 .build();
         PaymentConfig updated = paymentConfigService.update(incoming);
         return toPaymentConfigResponse(updated);
@@ -409,6 +412,9 @@ public class AdminService {
                 .testKey(config.getTestKey())
                 .liveKey(config.getLiveKey())
                 .mode(config.getMode())
+                .successUrl(config.getSuccessUrl())
+                .cancelUrl(config.getCancelUrl())
+                .checkoutUrlTemplate(config.getCheckoutUrlTemplate())
                 .updatedAt(config.getUpdatedAt())
                 .build();
     }

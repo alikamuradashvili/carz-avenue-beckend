@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/messages/**").authenticated()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "ADMINISTRATOR")
+                        .requestMatchers(HttpMethod.POST, "/payments/invoo/checkout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
                         // Also allow legacy /carsall=true endpoint used by some clients
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**", "/carsall=true").permitAll()
