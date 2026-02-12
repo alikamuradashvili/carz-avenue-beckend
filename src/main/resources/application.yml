@@ -67,13 +67,6 @@ app:
     from-email: ${RESET_PASSWORD_FROM_EMAIL:no-reply@carzavenue.com}
     expiration-minutes: ${RESET_PASSWORD_EXPIRATION_MINUTES:15}
 
-  invoo:
-    api-key: ${INVOO_API_KEY:}
-    base-url: ${INVOO_BASE_URL:https://dev.api.invoo-cpay.dev}
-    success-url: ${INVOO_SUCCESS_URL:http://localhost:5174/profile?payment=success&session_id={CHECKOUT_SESSION_ID}}
-    cancel-url: ${INVOO_CANCEL_URL:http://localhost:5174/profile?payment=cancel}
-
-
 google:
   oauth:
     client-id: ${GOOGLE_CLIENT_ID:}
