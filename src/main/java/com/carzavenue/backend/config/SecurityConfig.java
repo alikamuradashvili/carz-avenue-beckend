@@ -46,6 +46,10 @@ public class SecurityConfig {
                         .requestMatchers("/messages/**").authenticated()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "ADMINISTRATOR")
                         .requestMatchers(HttpMethod.POST, "/payments/invoo/checkout").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/payments/invoo/webhook").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/payments/invoo/status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/payments/invoo/redirect").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/payments/success", "/payments/cancel").permitAll()
                         .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
                         // Also allow legacy /carsall=true endpoint used by some clients
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**", "/carsall=true").permitAll()
