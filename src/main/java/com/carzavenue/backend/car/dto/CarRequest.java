@@ -27,6 +27,7 @@ public class CarRequest {
     @NotBlank
     private String listingType;
     private PackageType packageType;
+    private List<PackageType> packageTypes;
     private VehicleCategory category;
     private String contactPhone;
     private String vinCode;

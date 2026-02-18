@@ -16,6 +16,7 @@ public class CarResponse {
     String title;
     String listingType;
     PackageType packageType;
+    List<PackageType> packageTypes;
     VehicleCategory category;
     String make;
     String model;

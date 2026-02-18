@@ -4,10 +4,12 @@ import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.image.ImageEntity;
 import com.carzavenue.backend.image.ImageStorageService;
+import com.carzavenue.backend.payment.AccountService;
 import com.carzavenue.backend.user.User;
 import com.carzavenue.backend.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -30,6 +33,8 @@ public class CarService {
     private final CarModelRepository modelRepository;
     private final UserRepository userRepository;
     private final ImageStorageService imageStorageService;
+    private final AccountService accountService;
+    private static final BigDecimal QUICK_FILTER_PRICE = new BigDecimal("1.00");
     private final int vipDefaultDays;
 
     public CarService(CarListingRepository carRepository,
@@ -37,12 +42,14 @@ public class CarService {
                       CarModelRepository modelRepository,
                       UserRepository userRepository,
                       ImageStorageService imageStorageService,
+                      AccountService accountService,
                       @org.springframework.beans.factory.annotation.Value("${app.vip.default-days:7}") int vipDefaultDays) {
         this.carRepository = carRepository;
         this.manufacturerRepository = manufacturerRepository;
         this.modelRepository = modelRepository;
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
+        this.accountService = accountService;
         this.vipDefaultDays = vipDefaultDays;
     }
 
@@ -136,6 +143,7 @@ public class CarService {
         car.setTitle(buildTitle(request));
         car.setOwner(owner);
         carRepository.save(car);
+        chargeQuickFilterIfNeeded(ownerId, request.getPackageTypes(), request.getPackageType(), car.getId());
         return CarMapper.toResponse(car);
     }
 
@@ -169,6 +177,7 @@ public class CarService {
         }
 
         carRepository.save(car);
+        chargeQuickFilterIfNeeded(ownerId, request.getPackageTypes(), request.getPackageType(), car.getId());
         return CarMapper.toResponse(car);
     }
 
@@ -243,14 +252,28 @@ public class CarService {
         String cleanManufacturer = requireText(manufacturer, "manufacturer");
         String cleanModel = requireText(model, "model");
         CarManufacturer carManufacturer = manufacturerRepository.findByNameIgnoreCase(cleanManufacturer)
-                .orElseGet(() -> manufacturerRepository.save(CarManufacturer.builder()
-                        .name(cleanManufacturer)
-                        .build()));
+                .orElseGet(() -> {
+                    try {
+                        return manufacturerRepository.save(CarManufacturer.builder()
+                                .name(cleanManufacturer)
+                                .build());
+                    } catch (DataIntegrityViolationException ex) {
+                        return manufacturerRepository.findByNameIgnoreCase(cleanManufacturer)
+                                .orElseThrow(() -> ex);
+                    }
+                });
         modelRepository.findByManufacturerIdAndNameIgnoreCase(carManufacturer.getId(), cleanModel)
-                .orElseGet(() -> modelRepository.save(CarModel.builder()
-                        .manufacturer(carManufacturer)
-                        .name(cleanModel)
-                        .build()));
+                .orElseGet(() -> {
+                    try {
+                        return modelRepository.save(CarModel.builder()
+                                .manufacturer(carManufacturer)
+                                .name(cleanModel)
+                                .build());
+                    } catch (DataIntegrityViolationException ex) {
+                        return modelRepository.findByManufacturerIdAndNameIgnoreCase(carManufacturer.getId(), cleanModel)
+                                .orElseThrow(() -> ex);
+                    }
+                });
     }
 
     private String resolveVinCode(CarRequest request) {
@@ -285,6 +308,35 @@ public class CarService {
             throw new IllegalArgumentException("vinCode contains invalid characters");
         }
         return normalized;
+    }
+
+    private void chargeQuickFilterIfNeeded(Long ownerId, List<PackageType> packageTypes, PackageType fallback, Long listingId) {
+        List<PackageType> resolved = resolvePackageTypes(packageTypes, fallback);
+        if (resolved.isEmpty()) {
+            return;
+        }
+        String currency = accountService.normalizeCurrency(null);
+        String referenceId = listingId != null ? String.valueOf(listingId) : "package";
+        for (PackageType packageType : resolved) {
+            String idempotencyKey = referenceId + ":" + packageType.name();
+            accountService.chargePackage(ownerId, currency, QUICK_FILTER_PRICE, "listing", referenceId, idempotencyKey);
+        }
+    }
+
+    private List<PackageType> resolvePackageTypes(List<PackageType> packageTypes, PackageType fallback) {
+        if (packageTypes != null) {
+            List<PackageType> normalized = packageTypes.stream()
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .toList();
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        if (fallback != null) {
+            return List.of(fallback);
+        }
+        return List.of();
     }
 
     private String buildTitle(CarRequest request) {

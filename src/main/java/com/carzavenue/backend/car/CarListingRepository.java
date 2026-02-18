@@ -35,7 +35,7 @@ public interface CarListingRepository extends JpaRepository<CarListing, Long>, J
     @Query("select distinct c.listingType from CarListing c where c.listingType is not null and c.listingType <> '' order by c.listingType")
     List<String> findDistinctListingTypes();
 
-    @Query("select distinct c.packageType from CarListing c where c.packageType is not null order by c.packageType")
+    @Query("select distinct p from CarListing c join c.packageTypes p order by p")
     List<PackageType> findDistinctPackageTypes();
 
     @Query("select distinct c.category from CarListing c where c.category is not null order by c.category")

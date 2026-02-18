@@ -309,6 +309,11 @@ public class AdminService {
     public AdminListingResponse updateAdPackageType(Long id, com.carzavenue.backend.car.PackageType packageType) {
         CarListing car = carListingRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Listing not found"));
         car.setPackageType(packageType);
+        if (packageType == null) {
+            car.setPackageTypes(new java.util.ArrayList<>());
+        } else {
+            car.setPackageTypes(new java.util.ArrayList<>(List.of(packageType)));
+        }
         carListingRepository.save(car);
         return toAdminListing(car);
     }
