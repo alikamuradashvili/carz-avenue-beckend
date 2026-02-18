@@ -317,10 +317,9 @@ public class CarService {
         }
         String currency = accountService.normalizeCurrency(null);
         String referenceId = listingId != null ? String.valueOf(listingId) : "package";
-        for (PackageType packageType : resolved) {
-            String idempotencyKey = referenceId + ":" + packageType.name();
-            accountService.chargePackage(ownerId, currency, QUICK_FILTER_PRICE, "listing", referenceId, idempotencyKey);
-        }
+        BigDecimal total = QUICK_FILTER_PRICE.multiply(new BigDecimal(resolved.size()));
+        String idempotencyKey = buildPackageIdempotencyKey(referenceId, resolved);
+        accountService.chargePackage(ownerId, currency, total, "listing", referenceId, idempotencyKey);
     }
 
     private List<PackageType> resolvePackageTypes(List<PackageType> packageTypes, PackageType fallback) {
@@ -337,6 +336,17 @@ public class CarService {
             return List.of(fallback);
         }
         return List.of();
+    }
+
+    private String buildPackageIdempotencyKey(String referenceId, List<PackageType> resolved) {
+        String joined = resolved.stream()
+                .map(Enum::name)
+                .sorted()
+                .reduce((a, b) -> a + "." + b)
+                .orElse("packages");
+        int hash = joined.hashCode();
+        String base = referenceId + ":packages:" + resolved.size() + ":" + Math.abs(hash);
+        return base.length() > 64 ? base.substring(0, 64) : base;
     }
 
     private String buildTitle(CarRequest request) {
