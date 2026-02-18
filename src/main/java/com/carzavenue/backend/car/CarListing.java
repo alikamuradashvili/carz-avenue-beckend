@@ -74,6 +74,13 @@ public class CarListing {
     private PackageType packageType = PackageType.ECONOM;
 
     @Builder.Default
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "car_listing_package_types", joinColumns = @JoinColumn(name = "car_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "package_type", nullable = false)
+    private List<PackageType> packageTypes = new ArrayList<>();
+
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VehicleCategory category = VehicleCategory.OTHER;

@@ -3,7 +3,7 @@ package com.carzavenue.backend.car;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
-import java.util.Objects;
+import jakarta.persistence.criteria.JoinType;
 
 public class CarSpecifications {
     public static Specification<CarListing> active() {
@@ -70,7 +70,11 @@ public class CarSpecifications {
 
     public static Specification<CarListing> packageTypeIn(java.util.List<PackageType> packageTypes) {
         if (packageTypes == null || packageTypes.isEmpty()) return null;
-        return (root, query, cb) -> root.get("packageType").in(packageTypes);
+        return (root, query, cb) -> {
+            query.distinct(true);
+            var join = root.join("packageTypes", JoinType.LEFT);
+            return cb.or(join.in(packageTypes), root.get("packageType").in(packageTypes));
+        };
     }
 
     public static Specification<CarListing> categoryIn(java.util.List<VehicleCategory> categories) {

@@ -203,6 +203,7 @@ public class AdminController {
         mappedRequest.setPrice(request.getPrice());
         mappedRequest.setListingType(request.getListingType());
         mappedRequest.setPackageType(request.getPackageType());
+        mappedRequest.setPackageTypes(request.getPackageTypes());
         mappedRequest.setCategory(request.getCategory());
         mappedRequest.setColor(request.getColor());
         mappedRequest.setDescription(request.getDescription());

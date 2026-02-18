@@ -13,9 +13,7 @@ public class CarMapper {
     public static CarListing fromRequest(CarRequest request) {
         CarListing car = new CarListing();
         car.setListingType(request.getListingType());
-        if (request.getPackageType() != null) {
-            car.setPackageType(request.getPackageType());
-        }
+        applyPackageTypes(car, request.getPackageType(), request.getPackageTypes());
         if (request.getCategory() != null) {
             car.setCategory(request.getCategory());
         }
@@ -45,9 +43,7 @@ public class CarMapper {
 
     public static void updateEntity(CarListing car, CarRequest request) {
         car.setListingType(request.getListingType());
-        if (request.getPackageType() != null) {
-            car.setPackageType(request.getPackageType());
-        }
+        applyPackageTypes(car, request.getPackageType(), request.getPackageTypes());
         if (request.getCategory() != null) {
             car.setCategory(request.getCategory());
         }
@@ -88,12 +84,18 @@ public class CarMapper {
         if ((sellerPhone == null || sellerPhone.isBlank()) && car.getOwner() != null) {
             sellerPhone = car.getOwner().getPhoneNumber();
         }
+        List<PackageType> packageTypes = car.getPackageTypes();
+        if ((packageTypes == null || packageTypes.isEmpty()) && car.getPackageType() != null) {
+            packageTypes = List.of(car.getPackageType());
+        }
+
         return CarResponse.builder()
                 .id(car.getId())
                 .ownerId(car.getOwner().getId())
                 .title(car.getTitle())
                 .listingType(car.getListingType())
                 .packageType(car.getPackageType())
+                .packageTypes(packageTypes)
                 .category(car.getCategory())
                 .make(car.getMake())
                 .model(car.getModel())
@@ -120,6 +122,28 @@ public class CarMapper {
                 .createdAt(car.getCreatedAt())
                 .updatedAt(car.getUpdatedAt())
                 .build();
+    }
+
+    private static void applyPackageTypes(CarListing car, PackageType packageType, List<PackageType> packageTypes) {
+        if (packageTypes != null) {
+            List<PackageType> normalized = packageTypes.stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+            car.setPackageTypes(new ArrayList<>(normalized));
+            if (!normalized.isEmpty()) {
+                car.setPackageType(normalized.get(0));
+            }
+        }
+        if (packageType != null) {
+            car.setPackageType(packageType);
+            if (packageTypes == null || packageTypes.isEmpty()) {
+                car.setPackageTypes(new ArrayList<>(List.of(packageType)));
+            }
+        }
+        if ((car.getPackageTypes() == null || car.getPackageTypes().isEmpty()) && car.getPackageType() != null) {
+            car.setPackageTypes(new ArrayList<>(List.of(car.getPackageType())));
+        }
     }
 
     private static List<String> sanitizePhotos(List<String> photos) {
