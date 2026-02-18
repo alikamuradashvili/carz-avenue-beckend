@@ -4,6 +4,7 @@ import com.carzavenue.backend.car.dto.CarRequest;
 import com.carzavenue.backend.car.dto.CarResponse;
 import com.carzavenue.backend.image.ImageEntity;
 import com.carzavenue.backend.image.ImageStorageService;
+import com.carzavenue.backend.message.MessageRepository;
 import com.carzavenue.backend.payment.AccountService;
 import com.carzavenue.backend.user.User;
 import com.carzavenue.backend.user.UserRepository;
@@ -31,15 +32,22 @@ public class CarService {
     private final CarListingRepository carRepository;
     private final CarManufacturerRepository manufacturerRepository;
     private final CarModelRepository modelRepository;
+    private final CarLikeRepository carLikeRepository;
+    private final CarCommentRepository carCommentRepository;
+    private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ImageStorageService imageStorageService;
     private final AccountService accountService;
     private static final BigDecimal QUICK_FILTER_PRICE = new BigDecimal("1.00");
+    private static final int FREE_ADS_LIMIT = 10;
     private final int vipDefaultDays;
 
     public CarService(CarListingRepository carRepository,
                       CarManufacturerRepository manufacturerRepository,
                       CarModelRepository modelRepository,
+                      CarLikeRepository carLikeRepository,
+                      CarCommentRepository carCommentRepository,
+                      MessageRepository messageRepository,
                       UserRepository userRepository,
                       ImageStorageService imageStorageService,
                       AccountService accountService,
@@ -47,6 +55,9 @@ public class CarService {
         this.carRepository = carRepository;
         this.manufacturerRepository = manufacturerRepository;
         this.modelRepository = modelRepository;
+        this.carLikeRepository = carLikeRepository;
+        this.carCommentRepository = carCommentRepository;
+        this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
         this.accountService = accountService;
@@ -201,9 +212,10 @@ public class CarService {
         if (!isAdmin && !car.getOwner().getId().equals(ownerId)) {
             throw new SecurityException("Not allowed");
         }
-        car.setActive(false);
-        car.setStatus(AdStatus.INACTIVE);
-        carRepository.save(car);
+        messageRepository.deleteByCarId(id);
+        carCommentRepository.deleteByCarId(id);
+        carLikeRepository.deleteByCarId(id);
+        carRepository.delete(car);
     }
 
     @Transactional
@@ -225,6 +237,16 @@ public class CarService {
                 .stream()
                 .map(CarMapper::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveByOwner(Long ownerId) {
+        return carRepository.countByOwnerIdAndIsActiveTrue(ownerId);
+    }
+
+    @Transactional(readOnly = true)
+    public long countInactiveByOwner(Long ownerId) {
+        return carRepository.countByOwnerIdAndIsActiveFalse(ownerId);
     }
 
     @Transactional(readOnly = true)
@@ -312,12 +334,15 @@ public class CarService {
 
     private void chargeQuickFilterIfNeeded(Long ownerId, List<PackageType> packageTypes, PackageType fallback, Long listingId) {
         List<PackageType> resolved = resolvePackageTypes(packageTypes, fallback);
-        if (resolved.isEmpty()) {
-            return;
-        }
+        long activeListings = carRepository.countByOwnerIdAndIsActiveTrue(ownerId);
+        boolean chargeListingFee = activeListings >= FREE_ADS_LIMIT;
         String currency = accountService.normalizeCurrency(null);
         String referenceId = listingId != null ? String.valueOf(listingId) : "package";
-        BigDecimal total = QUICK_FILTER_PRICE.multiply(new BigDecimal(resolved.size()));
+        int billableUnits = resolved.size() + (chargeListingFee ? 1 : 0);
+        if (billableUnits == 0) {
+            return;
+        }
+        BigDecimal total = QUICK_FILTER_PRICE.multiply(new BigDecimal(billableUnits));
         String idempotencyKey = buildPackageIdempotencyKey(referenceId, resolved);
         accountService.chargePackage(ownerId, currency, total, "listing", referenceId, idempotencyKey);
     }

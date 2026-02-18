@@ -104,6 +104,20 @@ public class CarController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @GetMapping("/my/count")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Long>>> countMyListings(@AuthenticationPrincipal SecurityUser principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Unauthorized"));
+        }
+        long activeCount = carService.countActiveByOwner(principal.getUser().getId());
+        long inactiveCount = carService.countInactiveByOwner(principal.getUser().getId());
+        java.util.Map<String, Long> payload = new java.util.HashMap<>();
+        payload.put("activeCount", activeCount);
+        payload.put("inactiveCount", inactiveCount);
+        payload.put("totalCount", activeCount + inactiveCount);
+        return ResponseEntity.ok(ApiResponse.ok(payload));
+    }
+
     @GetMapping("/manufacturers")
     @Operation(summary = "List available manufacturers")
     @ApiResponses({

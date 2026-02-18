@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface CarListingRepository extends JpaRepository<CarListing, Long>, JpaSpecificationExecutor<CarListing> {
+    long countByOwnerIdAndIsActiveTrue(Long ownerId);
+    long countByOwnerIdAndIsActiveFalse(Long ownerId);
+
     @Query("select distinct c.model from CarListing c where lower(c.make) = lower(:make) and c.isActive = true")
     List<String> findDistinctModelsByMake(@Param("make") String make);
 
