@@ -13,10 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
     private final GoogleOAuthService googleOAuthService;
     private final PasswordResetService passwordResetService;
@@ -112,7 +115,10 @@ public class AuthController {
     public ResponseEntity<Void> googleCallback(@RequestParam(required = false) String code,
                                                @RequestParam(required = false) String state,
                                                @RequestParam(required = false) String error,
-                                               @RequestParam(required = false, name = "error_description") String errorDescription) {
+                                               @RequestParam(required = false, name = "error_description") String errorDescription,
+                                               jakarta.servlet.http.HttpServletRequest request) {
+        log.info("Google callback hit: uri={} query={}", request.getRequestURI(), request.getQueryString());
+        log.info("Google callback params -> code: {}, state: {}, error: {}, error_description: {}", code, state, error, errorDescription);
         String baseUrl = googleOAuthService.getFrontendCallbackUrl();
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
         if (error != null) {
@@ -120,17 +126,31 @@ public class AuthController {
             if (errorDescription != null) {
                 builder.queryParam("message", errorDescription);
             }
-            return ResponseEntity.status(302).location(builder.build(true).toUri()).build();
+            return ResponseEntity.status(302).location(builder.encode().build().toUri()).build();
         }
         try {
             TokenResponse tokens = googleOAuthService.handleCallback(code, state);
             builder.queryParam("token", tokens.getAccessToken());
             builder.queryParam("refreshToken", tokens.getRefreshToken());
-            return ResponseEntity.status(302).location(builder.build(true).toUri()).build();
+            return ResponseEntity.status(302).location(builder.encode().build().toUri()).build();
         } catch (Exception ex) {
+            log.warn("Google OAuth callback failed", ex);
             builder.queryParam("error", "oauth_failed");
-            builder.queryParam("message", ex.getMessage());
-            return ResponseEntity.status(302).location(builder.build(true).toUri()).build();
+            String message = ex.getMessage();
+            if (message == null || message.isBlank()) {
+                message = "OAuth failed";
+            }
+            builder.queryParam("message", message);
+            return ResponseEntity.status(302).location(builder.encode().build().toUri()).build();
         }
+    }
+
+    @GetMapping("/callback")
+    public ResponseEntity<Void> googleCallbackAlias(@RequestParam(required = false) String code,
+                                                    @RequestParam(required = false) String state,
+                                                    @RequestParam(required = false) String error,
+                                                    @RequestParam(required = false, name = "error_description") String errorDescription,
+                                                    jakarta.servlet.http.HttpServletRequest request) {
+        return googleCallback(code, state, error, errorDescription, request);
     }
 }
