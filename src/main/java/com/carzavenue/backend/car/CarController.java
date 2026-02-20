@@ -132,8 +132,9 @@ public class CarController {
                     })
             )
     })
-    public ResponseEntity<ApiResponse<java.util.List<CarManufacturer>>> listManufacturers() {
-        return ResponseEntity.ok(ApiResponse.ok(carService.listManufacturers()));
+    public ResponseEntity<ApiResponse<java.util.List<String>>> listManufacturers(
+            @RequestParam(value = "category", required = false) VehicleCategory category) {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listManufacturers(category)));
     }
 
     @GetMapping("/models")
@@ -161,8 +162,9 @@ public class CarController {
             )
     })
     public ResponseEntity<ApiResponse<java.util.List<String>>> listModelsByManufacturer(
-            @RequestParam("manufacturer") String manufacturer) {
-        return ResponseEntity.ok(ApiResponse.ok(carService.listModelsByManufacturer(manufacturer)));
+            @RequestParam("manufacturer") String manufacturer,
+            @RequestParam(value = "category", required = false) VehicleCategory category) {
+        return ResponseEntity.ok(ApiResponse.ok(carService.listModelsByManufacturer(manufacturer, category)));
     }
 
     @GetMapping(params = "all=true")

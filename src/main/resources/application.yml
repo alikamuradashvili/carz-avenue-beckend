@@ -71,8 +71,8 @@ google:
   oauth:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}
-    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/auth/google/callback}
-    frontend-callback-url: ${FRONTEND_CALLBACK_URL:http://localhost:5174}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:https://hyman-dermatomic-imputedly.ngrok-free.dev/auth/google/callback}
+    frontend-callback-url: ${FRONTEND_CALLBACK_URL:https://hyman-dermatomic-imputedly.ngrok-free.dev/auth/callback}
 
 logging:
   level:

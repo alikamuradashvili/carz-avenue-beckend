@@ -17,6 +17,9 @@ public interface CarListingRepository extends JpaRepository<CarListing, Long>, J
     @Query("select distinct c.make from CarListing c where c.make is not null order by c.make")
     List<String> findDistinctMakes();
 
+    @Query("select distinct c.make from CarListing c where c.make is not null and c.isActive = true and (:category is null or c.category = :category) order by c.make")
+    List<String> findDistinctMakesByCategory(@Param("category") VehicleCategory category);
+
     @Query("select count(c) > 0 from CarListing c where lower(c.make) = lower(:make) and c.isActive = true")
     boolean existsActiveMake(@Param("make") String make);
 
@@ -25,6 +28,9 @@ public interface CarListingRepository extends JpaRepository<CarListing, Long>, J
 
     @Query("select distinct c.model from CarListing c where c.model is not null order by c.model")
     List<String> findDistinctModels();
+
+    @Query("select distinct c.model from CarListing c where lower(c.make) = lower(:make) and c.isActive = true and (:category is null or c.category = :category) order by c.model")
+    List<String> findDistinctModelsByMakeAndCategory(@Param("make") String make, @Param("category") VehicleCategory category);
 
     @Query("select distinct c.owner.email from CarListing c where c.owner.email is not null order by c.owner.email")
     List<String> findDistinctOwnerEmails();
