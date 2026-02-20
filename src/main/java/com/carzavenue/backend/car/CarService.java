@@ -250,11 +250,14 @@ public class CarService {
     }
 
     @Transactional(readOnly = true)
-    public List<String> listModelsByManufacturer(String manufacturer) {
+    public List<String> listModelsByManufacturer(String manufacturer, VehicleCategory category) {
         if (manufacturer == null || manufacturer.trim().isEmpty()) {
             throw new IllegalArgumentException("manufacturer is required");
         }
         String cleanManufacturer = manufacturer.trim();
+        if (category != null) {
+            return carRepository.findDistinctModelsByMakeAndCategory(cleanManufacturer, category);
+        }
         Optional<CarManufacturer> carManufacturer = manufacturerRepository.findByNameIgnoreCase(cleanManufacturer);
         if (carManufacturer.isEmpty()) {
             return List.of();
@@ -266,8 +269,14 @@ public class CarService {
     }
 
     @Transactional(readOnly = true)
-    public List<CarManufacturer> listManufacturers() {
-        return manufacturerRepository.findAllByOrderByIdAsc();
+    public List<String> listManufacturers(VehicleCategory category) {
+        if (category != null) {
+            return carRepository.findDistinctMakesByCategory(category);
+        }
+        return manufacturerRepository.findAllByOrderByIdAsc()
+                .stream()
+                .map(CarManufacturer::getName)
+                .toList();
     }
 
     private void ensureManufacturerModelExists(String manufacturer, String model) {
